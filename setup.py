@@ -8,18 +8,6 @@ from Cython.Build import cythonize
 COMPILE_ARGS = ["-O2"]
 
 extensions = [
-    Extension(
-        name="rewards.exceptions",
-        sources=["rewards/exceptions.pyx"],
-        extra_compile_args=COMPILE_ARGS,
-        language="c",
-    ),
-    Extension(
-        name="rewards.types.typedefs",
-        sources=["rewards/types/typedefs.pyx"],
-        extra_compile_args=COMPILE_ARGS,
-        # language defaults to C; set language="c++" if needed
-    ),
 ]
 
 class BuildExtensions(build_ext):

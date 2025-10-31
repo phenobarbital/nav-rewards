@@ -1,0 +1,552 @@
+[
+    {
+        "reward_id": 1000,
+        "reward": "Employment Awarded Badge",
+        "description": "Congratulations on your employment!",
+        "points": 200,
+        "icon": "https://www.google.com/images/branding/googlelogo/1x/googlelogo_color_272x92dp.png",
+        "reward_type": "User Badge",
+        "reward_category": "Follow Up",
+        "reward_group": "Core Badges",
+        "attributes": {
+            "emoji": "🏆"
+        }
+    },
+    {
+        "reward_id": 1001,
+        "reward": "Amazing Reward",
+        "description": "This is a Test Reward Description",
+        "points": 100,
+        "icon": "https://www.google.com/images/branding/googlelogo/1x/googlelogo_color_272x92dp.png",
+        "reward_type": "Test Badge",
+        "reward_category": "Test Category",
+        "reward_group": "Test Badges",
+        "attributes": {
+            "emoji": "🛒"
+        },
+        "availability_rule": {
+            "dow": [0, 1, 2, 3, 4, 5]
+        }
+    },
+    {
+        "reward_id": 1002,
+        "reward": "Walmart Reward",
+        "description": "Test Reward Walmart",
+        "points": 100,
+        "icon": "https://www.google.com/images/branding/googlelogo/1x/googlelogo_color_272x92dp.png",
+        "reward_type": "Test Badge",
+        "reward_category": "Test Category",
+        "reward_group": "Test Badges",
+        "programs": ["walmart"],
+        "availability_rule": {
+            "start_time": "07:00:00",
+            "end_time": "18:00:00"
+        }
+    },
+    {
+        "reward_id": 1003,
+        "reward": "Birthday Badge",
+        "description": "Happy Birthday to you!",
+        "points": 500,
+        "icon": "https://www.google.com/images/branding/googlelogo/1x/googlelogo_color_272x92dp.png",
+        "reward_type": "Recognition Badge",
+        "reward_category": "Recognition",
+        "reward_group": "Core Badges",
+        "rules": [
+            ["Birthday"]
+        ]
+    },
+    {
+        "reward_id": 1004,
+        "reward": "Employment Awarded Badge",
+        "description": "Another Year in the company!",
+        "points": 500,
+        "icon": "https://www.google.com/images/branding/googlelogo/1x/googlelogo_color_272x92dp.png",
+        "reward_type": "Recognition Badge",
+        "reward_category": "Recognition",
+        "reward_group": "Core Badges",
+        "rules": [
+            ["EmploymentDuration"]
+        ]
+    },
+    {
+        "reward_id": 1005,
+        "reward": "Walmart Employee of the Month",
+        "description": "Walmart Employee of the Month",
+        "points": 200,
+        "icon": "https://www.google.com/images/branding/googlelogo/1x/googlelogo_color_272x92dp.png",
+        "reward_type": "User Badge",
+        "reward_category": "Sales Targets",
+        "reward_group": "TROC Badges",
+        "assigner": [
+            {
+                "job_code": ["AREAMGR", "REGDIR"]
+            }
+        ],
+        "awardee": [
+            {"job_code": ["MSLASSOC"]},
+            {"groups": ["walmart"]}
+        ]
+    },
+    {
+        "reward_id": 1006,
+        "reward": "Earlier Access",
+        "description": "Earlier Access",
+        "points": 100,
+        "icon": "https://www.google.com/images/branding/googlelogo/1x/googlelogo_color_272x92dp.png",
+        "reward_type": "User Badge",
+        "reward_category": "Sales Targets",
+        "reward_group": "TROC Badges",
+        "assigner": [
+            {
+                "job_code": ["AREAMGR", "REGDIR"]
+            }
+        ],
+        "availability_rule": {
+            "start_date": "15-01",
+            "end_date": "31-03"
+        }
+    },
+    {
+        "reward_id": 1007,
+        "reward": "Welcome to Navigator",
+        "description": "10 points every time you log in",
+        "multiple": true,
+        "points": 10,
+        "icon": "https://www.google.com/images/branding/googlelogo/1x/googlelogo_color_272x92dp.png",
+        "reward_type": "Automated Badge",
+        "reward_category": "Recognition",
+        "reward_group": "Test Badges"
+    },
+    {
+        "reward_id": 1008,
+        "reward": "Seller of the day",
+        "description": "Walmart Best Seller of the day",
+        "points": 500,
+        "icon": "https://www.google.com/images/branding/googlelogo/1x/googlelogo_color_272x92dp.png",
+        "reward_type": "Automated Badge",
+        "reward_category": "Sales Targets",
+        "reward_group": "TROC Badges",
+        "message": "Congratulations {{user.display_name}}! You're awarded with the Best Seller Badge in Walmart for your {{args.num_sales}} sales (on position {{args.position}}) made this {{env.month_name}}!",
+        "awardee": [
+            {"programs": ["walmart"]}
+        ],
+        "events": [
+            {
+                "walmart.postpaid_sales": {
+                    "slug": "walmart_postpaid_sales_by_employee_day"
+                }
+            }
+        ],
+        "rules": [
+            ["BestSeller", {"count": 3, "column": "num_sales"}]
+        ]
+    },
+    {
+        "reward_id": 1009,
+        "reward": "Lottery Winner",
+        "description": "A Random Winner every day",
+        "points": 500,
+        "message": "Congratulations {{user.display_name}}! You're the lucky winner of the day!",
+        "icon": "https://www.google.com/images/branding/googlelogo/1x/googlelogo_color_272x92dp.png",
+        "reward_type": "Computed Badge",
+        "reward_category": "Lottery",
+        "reward_group": "Test Badges",
+        "multiple": true,
+        "timeframe": "daily",
+        "rules": [
+            [
+                "RandomUsers", {"count": 1}
+            ]
+        ],
+        "job": {
+            "trigger": "interval",
+            "schedule": {
+                "hours": 24
+            }
+        }
+    },
+    {
+        "reward_id": 1010,
+        "reward": "Weekly Jackpot Winner",
+        "description": "Random winner selected every Friday at 5 PM",
+        "points": 2500,
+        "message": "🎉 JACKPOT! {{user.display_name}} wins the weekly jackpot!",
+        "reward_type": "Computed Badge",
+        "reward_category": "Lottery",
+        "reward_group": "Random Rewards",
+        "multiple": true,
+        "timeframe": "weekly",
+        "rules": [
+            ["RandomUsers", {"count": 1}]
+        ],
+        "job": {
+            "trigger": "cron",
+            "cron": {
+                "day_of_week": "fri",
+                "hour": 17,
+                "minute": 0
+            },
+            "id": "weekly_jackpot",
+            "name": "Weekly Jackpot Selection",
+            "max_instances": 1,
+            "coalesce": true,
+            "misfire_grace_time": 600,
+            "timezone": "America/New_York"
+        }
+    },
+    {
+        "reward_id": 1011,
+        "reward": "Onboarding Champion",
+        "description": "Complete the onboarding process",
+        "multiple": false,
+        "points": 100,
+        "icon": "https://www.google.com/images/branding/googlelogo/1x/googlelogo_color_272x92dp.png",
+        "reward_type": "Challenge",
+        "reward_category": "Recognition",
+        "reward_group": "Test Badges",
+        "challenges": [
+            {
+                "step": "First Login"
+            },
+            {
+                "step": "Complete Profile"
+            },
+            {
+                "step": "Complete Training"
+            },
+            {
+                "step": "Complete Quiz"
+            },
+            {
+                "step": "Sign Documents"
+            }
+        ],
+        "events": [
+            {
+                "user.onboarding": {
+                    "workflow": true
+                }
+            }
+        ]
+    },
+    {
+        "reward_id": 1012,
+        "reward": "Christmas Special",
+        "description": "Special Christmas lottery",
+        "points": 1000,
+        "reward_type": "Computed Badge",
+        "reward_category": "Lottery",
+        "reward_group": "Holiday Specials",
+        "rules": [
+            [
+                "RandomUsers", {"count": 5}
+            ]
+        ],
+        "job": {
+            "trigger": "date",
+            "date": {
+                "run_date": "2024-12-25 10:00:00"
+            },
+            "id": "christmas_special",
+            "name": "Christmas Special Lottery",
+            "timezone": "America/New_York"
+        }
+    },
+    {
+        "reward_id": 1013,
+        "reward": "Monthly Mega Lottery",
+        "description": "Big monthly lottery - independent of other lotteries",
+        "points": 5000,
+        "reward_type": "Computed Badge",
+        "reward_category": "Lottery",
+        "reward_group": "Monthly Rewards",
+        "multiple": true,
+        "timeframe": "monthly",
+        "rules": [
+            [   "RandomUsers", {
+                    "count": 5,
+                    "exclude_recent_winners": true,
+                    "recent_winner_days": 30
+                }
+            ]
+        ],
+        "job": {
+            "trigger": "cron",
+            "cron": {"day": "last", "hour": 16, "minute": 0},
+            "id": "monthly_mega_lottery"
+        }
+    },
+    {
+        "reward_id": 3000,
+        "reward": "Consistency King",
+        "description": "Maintained 30-day login streak",
+        "points": 1000,
+        "reward_type": "Achievement Badge",
+        "reward_category": "Engagement",
+        "rules": [
+            [
+                "AchievementRule", {
+                    "function_path": "rewards.functions.engagement.get_login_streak",
+                    "threshold": 30,
+                    "operator": "gte"
+                }
+            ]
+        ]
+    },
+    {
+        "reward_id": 3001,
+        "reward": "Attendance Champion",
+        "description": "Perfect attendance for 30 days",
+        "points": 800,
+        "reward_type": "Achievement Badge",
+        "reward_category": "Engagement",
+        "icon": "https://www.google.com/images/branding/googlelogo/1x/googlelogo_color_272x92dp.png",
+        "availability_rule": {
+            "start_date": "01-01",
+            "end_date": "31-12"
+        },
+        "rules": [
+                [
+                    "AttendanceRule", {
+                        "count": 30,
+                        "unit": "day",
+                        "dataset": "employee_attendance",
+                        "only_weekdays": true,
+                        "match": "perfect",
+                        "deviation": 2,
+                        "filter_by": "attendance_date"
+                }
+            ]
+        ]
+    },
+        {
+            "reward_id": 5001,
+            "reward": "Perfect Attendance - Monthly",
+            "description": "Perfect weekday attendance for the entire month",
+            "points": 1000,
+            "reward_type": "Achievement Badge",
+            "reward_category": "Attendance",
+            "multiple": true,
+            "timeframe": "monthly",
+            "rules": [
+                ["AttendanceRule", {
+                    "count": 1,
+                    "unit": "month",
+                    "dataset": "employee_attendance",
+                    "filter_by": "attendance_date",
+                    "match": "perfect",
+                    "only_weekdays": true
+                }]
+            ]
+        },
+        {
+            "reward_id": 5002,
+            "reward": "Excellent Attendance",
+            "description": "Near-perfect attendance (max 2 missed days) in last 30 days",
+            "points": 500,
+            "reward_type": "Achievement Badge",
+            "reward_category": "Attendance",
+            "multiple": true,
+            "timeframe": "monthly",
+            "rules": [
+                ["AttendanceRule", {
+                    "count": 30,
+                    "unit": "day",
+                    "dataset": "employee_attendance",
+                    "filter_by": "attendance_date",
+                    "match": "partial",
+                    "deviation": 2,
+                    "only_weekdays": true
+                }]
+            ]
+        },
+        {
+            "reward_id": 5003,
+            "reward": "Weekend Warrior",
+            "description": "Perfect attendance including weekends for 2 weeks",
+            "points": 750,
+            "reward_type": "Achievement Badge",
+            "reward_category": "Attendance",
+            "rules": [
+                ["AttendanceRule", {
+                    "count": 2,
+                    "unit": "week",
+                    "dataset": "employee_attendance",
+                    "filter_by": "attendance_date",
+                    "match": "perfect",
+                    "only_weekdays": false
+                }]
+            ]
+        },
+        {
+            "reward_id": 5004,
+            "reward": "Quarterly Consistency",
+            "description": "Excellent attendance (max 5 missed days) over 3 months",
+            "points": 2000,
+            "reward_type": "Achievement Badge",
+            "reward_category": "Attendance",
+            "multiple": true,
+            "timeframe": "quarterly",
+            "rules": [
+                ["AttendanceRule", {
+                    "count": 3,
+                    "unit": "month",
+                    "dataset": "employee_attendance",
+                    "filter_by": "attendance_date",
+                    "match": "partial",
+                    "deviation": 5,
+                    "only_weekdays": true
+                }]
+            ]
+        },
+        {
+            "reward_id": 6001,
+            "reward": "Rolling 30-Day Perfect Attendance",
+            "description": "Perfect attendance over any rolling 30-day period",
+            "points": 1000,
+            "reward_type": "Achievement Badge",
+            "reward_category": "Attendance",
+            "multiple": true,
+            "timeframe": "daily",
+            "rules": [
+                ["AttendanceRule", {
+                    "count": 30,
+                    "unit": "day",
+                    "period_type": "rolling",
+                    "dataset": "employee_attendance",
+                    "match": "perfect",
+                    "only_weekdays": true
+                }]
+            ]
+        },
+        {
+            "reward_id": 6003,
+            "reward": "Monthly Perfect Attendance",
+            "description": "Perfect attendance for the calendar month",
+            "points": 800,
+            "reward_type": "Achievement Badge",
+            "reward_category": "Attendance",
+            "multiple": true,
+            "timeframe": "monthly",
+            "rules": [
+                [
+                    "AttendanceRule", {
+                        "count": 1,
+                        "unit": "month",
+                        "period_type": "fixed",
+                        "dataset": "employee_attendance",
+                        "match": "perfect",
+                        "only_weekdays": true
+                    }
+                ]
+            ]
+        },
+        {
+            "reward_id": 6004,
+            "reward": "Quarterly Attendance Champion",
+            "description": "Perfect attendance for the entire quarter",
+            "points": 3000,
+            "reward_type": "Achievement Badge",
+            "reward_category": "Attendance",
+            "multiple": true,
+            "timeframe": "quarterly",
+            "rules": [
+                ["AttendanceRule", {
+                    "count": 3,
+                    "unit": "month",
+                    "period_type": "fixed",
+                    "dataset": "employee_attendance",
+                    "match": "perfect",
+                    "only_weekdays": true
+                }]
+            ]
+        },
+        {
+            "reward_id": 7000,
+            "reward": "Onboarding Champion",
+            "points": 2000,
+            "reward_type": "Workflow Badge",
+            "reward_category": "Training",
+            "multiple": false,
+            "workflow": [
+                {"step": "First Login"},
+                {"step": "Complete Profile"},
+                {"step": "Take Training"}
+            ],
+            "completion_callbacks": [
+            ],
+            "step_callbacks": {
+            }
+        },
+        {
+            "reward_id": 7002,
+            "reward": "Sales Mastery",
+            "description": "Complete the sales training program",
+            "points": 2000,
+            "reward_type": "Workflow Badge",
+            "reward_category": "Training",
+            "multiple": true,
+            "auto_enroll": true,
+            "auto_evaluation": true,
+            "workflow": [
+                {
+                    "step": "Product Knowledge",
+                    "condition": {
+                        "function_path": "rewards.functions.training.check_product_knowledge",
+                        "threshold": 80,
+                        "operator": "gte"
+                    }
+                },
+                {
+                    "step": "Sales Techniques",
+                    "condition": {
+                        "function_path": "rewards.functions.training.check_sales_techniques",
+                        "threshold": 75,
+                        "operator": "gte"
+                    }
+                },
+                {
+                    "step": "Customer Service",
+                    "condition": {
+                        "function_path": "rewards.functions.training.check_customer_service",
+                        "threshold": 80,
+                        "operator": "gte"
+                    }
+                },
+                {
+                    "step": "Closing Deals",
+                    "condition": {
+                        "function_path": "rewards.functions.training.check_closing_deals",
+                        "threshold": 85,
+                        "operator": "gte"
+                    }
+                },
+                {
+                    "step": "Final Assessment",
+                    "condition": {
+                        "function_path": "rewards.functions.training.check_final_assessment",
+                        "threshold": 90,
+                        "operator": "gte"
+                    }
+                }
+            ],
+            "completion_callbacks": [
+                "rewards.callbacks.training.notify_completion",
+                "rewards.callbacks.training.update_employee_record"
+            ],
+            "step_callbacks": {
+                "Product Knowledge": [
+                    "rewards.callbacks.training.unlock_sales_techniques"
+                ],
+                "Sales Techniques": [
+                    "rewards.callbacks.training.unlock_customer_service"
+                ]
+            },
+            "events": [
+                {"training.completed": {"program": "sales"}},
+                {"training.module_completed": {"program": "sales"}},
+                {"assessment.completed": {"program": "sales"}}
+            ]
+        }
+]
