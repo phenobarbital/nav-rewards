@@ -202,3 +202,10 @@ cython_debug/
 marimo/_static/
 marimo/_lsp/
 __marimo__/
+
+# setuptools
+.eggs/
+*.egg-info/
+dist/
+build/
+rewards/_version.py
