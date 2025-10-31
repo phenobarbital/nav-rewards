@@ -645,6 +645,9 @@ class RewardView(Model):
         label="Auto Evaluation",
         ui_help="If True, reward will be automatically evaluated based on the defined rules."  # noqa: E501
     )
+    effective_date: Optional[datetime] = Field(
+        ui_help="When this Reward is effective."
+    )
 
     class Meta:
         name = REWARDS_VIEW
