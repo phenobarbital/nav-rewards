@@ -8,9 +8,17 @@ from asyncdb.models import Model
 from navigator_auth.models import User, Group
 from .conf import (
     PEOPLE_LIST,
-    PEOPLE_SCHEMA
+    PEOPLE_SCHEMA,
+    REWARDS_SCHEMA,
+    REWARDS_VIEW,
+    USER_REWARDS
+
 )
 
+__all__ = (
+    'User',
+    'Group',
+)
 
 class ADPeople(Model):
     """Active Directory Users."""
@@ -56,9 +64,8 @@ class RewardType(Model):
     description: str = Field(required=False)
 
     class Meta:
-        driver = "pg"
         name = "reward_types"
-        schema = "rewards"
+        schema = REWARDS_SCHEMA
         endpoint: str = 'rewards/api/v1/reward_types'
         strict = True
 
@@ -67,9 +74,8 @@ class RewardCategory(Model):
     reward_category: str = Field(primary_key=True, required=True)
 
     class Meta:
-        driver = "pg"
         name = "reward_categories"
-        schema = "rewards"
+        schema = REWARDS_SCHEMA
         endpoint: str = 'rewards/api/v1/reward_categories'
         strict = True
 
@@ -80,9 +86,8 @@ class RewardGroup(Model):
     reward_group: str = Field(primary_key=True, required=True)
 
     class Meta:
-        driver = "pg"
         name = "reward_groups"
-        schema = "rewards"
+        schema = REWARDS_SCHEMA
         endpoint: str = 'rewards/api/v1/reward_groups'
         strict = True
 
@@ -201,9 +206,8 @@ class Reward(Model):
     )
 
     class Meta:
-        driver = "pg"
         name = "rewards"
-        schema = "rewards"
+        schema = REWARDS_SCHEMA
         endpoint: str = 'rewards/api/v1/rewards'
         strict = True
 
@@ -227,9 +231,8 @@ class RewardRule(Model):
     inserted_at: datetime = Field(required=False, default=datetime.now)
 
     class Meta:
-        driver = "pg"
         name = "reward_rules"
-        schema = "rewards"
+        schema = REWARDS_SCHEMA
         endpoint: str = 'rewards/api/v1/reward_rules'
         strict = True
 
@@ -265,9 +268,8 @@ class RewardPermission(Model):
     )
 
     class Meta:
-        driver = "pg"
         name = "reward_permissions"
-        schema = "rewards"
+        schema = REWARDS_SCHEMA
         endpoint: str = 'rewards/api/v1/reward_permissions'
         strict = True
 
@@ -296,7 +298,7 @@ class Employee(BaseModel):
 
     class Meta:
         name = 'vw_active_employees'
-        schema = 'troc'
+        schema = PEOPLE_SCHEMA
         strict = True
 
 
@@ -358,7 +360,7 @@ class UserReward(Model):
 
     class Meta:
         name = 'users_rewards'
-        schema = 'rewards'
+        schema = REWARDS_SCHEMA
         endpoint: str = 'rewards/api/v1/users_rewards'
         strict = True
 
@@ -392,7 +394,7 @@ class RewardLike(Model):
 
     class Meta:
         name = 'rewards_likes'
-        schema = 'rewards'
+        schema = REWARDS_SCHEMA
         endpoint: str = 'rewards/api/v1/rewards_likes'
         strict = True
 
@@ -422,7 +424,7 @@ class RewardComment(Model):
 
     class Meta:
         name = 'rewards_comments'
-        schema = 'rewards'
+        schema = REWARDS_SCHEMA
         endpoint: str = 'rewards/api/v1/rewards_comments'
         strict = True
 
@@ -447,7 +449,7 @@ class RewardCommentReport(Model):
 
     class Meta:
         name = 'rewards_comments_reports'
-        schema = 'rewards'
+        schema = REWARDS_SCHEMA
         endpoint: str = 'rewards/api/v1/rewards_comments_reports'
         strict = True
 
@@ -470,7 +472,7 @@ class RewardPoint(Model):
 
     class Meta:
         name = 'rewards_points'
-        schema = 'rewards'
+        schema = REWARDS_SCHEMA
         endpoint: str = 'rewards/api/v1/rewards_points'
         strict = True
 
@@ -490,7 +492,7 @@ class Collective(Model):
 
     class Meta:
         name = 'collectives'
-        schema = 'rewards'
+        schema = REWARDS_SCHEMA
         endpoint: str = 'rewards/api/v1/collectives'
         strict = True
 
@@ -513,7 +515,7 @@ class CollectiveReward(Model):
 
     class Meta:
         name = 'collectives_rewards'
-        schema = 'rewards'
+        schema = REWARDS_SCHEMA
         endpoint: str = 'rewards/api/v1/collectives_rewards'
         strict = True
 
@@ -536,7 +538,7 @@ class CollectiveUnlocked(Model):
 
     class Meta:
         name = 'collectives_unlocked'
-        schema = 'rewards'
+        schema = REWARDS_SCHEMA
         endpoint: str = 'rewards/api/v1/collectives_unlocked'
         strict = True
 
@@ -645,9 +647,8 @@ class RewardView(Model):
     )
 
     class Meta:
-        driver = "pg"
-        name = "vw_rewards"
-        schema = "rewards"
+        name = REWARDS_VIEW
+        schema = REWARDS_SCHEMA
         endpoint: str = 'rewards/api/v1/rewards_views'
         strict = True
 
@@ -699,8 +700,8 @@ class BadgeAssign(BaseModel):
     )
 
     class Meta:
-        name = 'users_rewards'
-        schema = 'rewards'
+        name = USER_REWARDS
+        schema = REWARDS_SCHEMA
         endpoint: str = 'api/v1/badge_assign'
         strict = True
         settings: dict = {

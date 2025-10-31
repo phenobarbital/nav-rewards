@@ -83,3 +83,7 @@ rabbitmq_dsn = f"amqp://{RABBITMQ_USER}:{RABBITMQ_PASS}@{RABBITMQ_HOST}:{RABBITM
 # System table to find people
 PEOPLE_LIST = config.get('PEOPLE_LIST', fallback='vw_people')
 PEOPLE_SCHEMA = config.get('PEOPLE_SCHEMA', fallback='troc')
+
+REWARDS_SCHEMA = config.get('REWARDS_SCHEMA', fallback='rewards')
+REWARDS_VIEW = config.get('REWARDS_VIEW', fallback='vw_rewards')
+USER_REWARDS = config.get('USER_REWARDS', fallback="users_rewards")
