@@ -77,3 +77,9 @@ RABBITMQ_PASS = config.get("RABBITMQ_PASS", fallback="guest")
 RABBITMQ_VHOST = config.get("RABBITMQ_VHOST", fallback="navigator")
 # DSN
 rabbitmq_dsn = f"amqp://{RABBITMQ_USER}:{RABBITMQ_PASS}@{RABBITMQ_HOST}:{RABBITMQ_PORT}/{RABBITMQ_VHOST}"
+
+
+## Tables:
+# System table to find people
+PEOPLE_LIST = config.get('PEOPLE_LIST', fallback='vw_people')
+PEOPLE_SCHEMA = config.get('PEOPLE_SCHEMA', fallback='troc')
