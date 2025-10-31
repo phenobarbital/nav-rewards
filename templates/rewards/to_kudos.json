@@ -1,0 +1,186 @@
+{
+    "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
+    "type": "AdaptiveCard",
+    "version": "1.5",
+    "body": [
+        {
+            "type": "Image",
+            "url": "https://jobs.trocglobal.com/wp-content/themes/t-roc/assets/build/img/og_img.jpg",
+            "horizontalAlignment": "Center",
+            "size": "Large",
+            "spacing": "None"
+        },
+        {
+            "type": "Container",
+            "items": [
+                {
+                    "type": "TextBlock",
+                    "text": "🌟 You've received Kudos!",
+                    "horizontalAlignment": "Center",
+                    "weight": "Bolder",
+                    "color": "Default",
+                    "spacing": "Medium",
+                    "size": "Medium"
+                },
+                {
+                    "type": "TextBlock",
+                    "text": "Recognition from your teammate",
+                    "horizontalAlignment": "Center",
+                    "size": "Large",
+                    "weight": "Bolder",
+                    "color": "Dark",
+                    "spacing": "Small"
+                },
+                {
+                    "type": "TextBlock",
+                    "text": "{{sent_date}}",
+                    "horizontalAlignment": "Center",
+                    "color": "Dark",
+                    "spacing": "None",
+                    "size": "Small"
+                }
+            ],
+            "bleed": true,
+            "padding": "Medium",
+            "style": "emphasis"
+        },
+        {
+            "type": "Container",
+            "items": [
+                {
+                    "type": "TextBlock",
+                    "text": "💬 Message:",
+                    "weight": "Bolder",
+                    "size": "Medium",
+                    "color": "Accent",
+                    "spacing": "Medium"
+                },
+                {
+                    "type": "TextBlock",
+                    "text": "{{message}}",
+                    "wrap": true,
+                    "spacing": "Small",
+                    "size": "Medium"
+                }
+            ],
+            "style": "good",
+            "bleed": true,
+            "padding": "Medium"
+        },
+        {
+            "type": "Container",
+            "items": [
+                {
+                    "type": "TextBlock",
+                    "text": "🏷️ Recognition Tags",
+                    "weight": "Bolder",
+                    "size": "Medium",
+                    "color": "Accent",
+                    "spacing": "Medium"
+                },
+                {
+                    "type": "Container",
+                    "items": [
+                        {% for tag in tags %}
+                        {
+                            "type": "TextBlock",
+                            "text": "{{tag}}",
+                            "wrap": false,
+                            "spacing": "Small",
+                            "size": "Small",
+                            "weight": "Bolder",
+                            "color": "Good",
+                            "style": "emphasis"
+                        }{% if not loop.last %},{% endif %}
+                        {% endfor %}
+                    ],
+                    "spacing": "Small",
+                    "style": "emphasis",
+                    "bleed": false,
+                    "padding": "Small"
+                }
+            ],
+            "spacing": "Medium"
+        },
+        {
+            "type": "ColumnSet",
+            "columns": [
+                {
+                    "type": "Column",
+                    "items": [
+                        {
+                            "type": "TextBlock",
+                            "text": "From",
+                            "weight": "Bolder",
+                            "spacing": "Small",
+                            "size": "Small",
+                            "color": "Dark"
+                        },
+                        {
+                            "type": "TextBlock",
+                            "text": "{{giver_name}}",
+                            "size": "Medium",
+                            "weight": "Bolder",
+                            "color": "Accent"
+                        },
+                        {
+                            "type": "TextBlock",
+                            "text": "{{giver_email}}",
+                            "size": "Small",
+                            "isSubtle": true,
+                            "spacing": "None"
+                        }
+                    ],
+                    "width": "stretch"
+                },
+                {
+                    "type": "Column",
+                    "items": [
+                        {
+                            "type": "TextBlock",
+                            "text": "To",
+                            "weight": "Bolder",
+                            "spacing": "Small",
+                            "size": "Small",
+                            "color": "Dark"
+                        },
+                        {
+                            "type": "TextBlock",
+                            "text": "{{receiver_name}}",
+                            "size": "Medium",
+                            "weight": "Bolder",
+                            "color": "Good"
+                        },
+                        {
+                            "type": "TextBlock",
+                            "text": "{{receiver_email}}",
+                            "size": "Small",
+                            "isSubtle": true,
+                            "spacing": "None"
+                        }
+                    ],
+                    "width": "stretch"
+                }
+            ],
+            "spacing": "Large",
+            "separator": true
+        },
+        {
+            "type": "Container",
+            "items": [
+                {
+                    "type": "TextBlock",
+                    "text": "🤝 Keep up the great work!",
+                    "horizontalAlignment": "Center",
+                    "weight": "Bolder",
+                    "color": "Good",
+                    "size": "Medium"
+                }
+            ],
+            "style": "accent",
+            "bleed": true,
+            "padding": "Small",
+            "spacing": "Medium"
+        }
+    ]
+}

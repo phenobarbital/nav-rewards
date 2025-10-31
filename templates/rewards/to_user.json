@@ -1,0 +1,123 @@
+{
+  "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
+  "type": "AdaptiveCard",
+  "version": "1.5",
+  "body": [
+    {
+      "type": "Image",
+      "url": "https://api.trocdigital.io/api/v2/services/images/clients/sidebar.png?sec=0&dir=rewards/branding/",
+      "horizontalAlignment": "Center",
+      "size": "Large",
+      "spacing": "None"
+    },
+    {
+      "type": "Container",
+      "items": [
+        {
+          "type": "TextBlock",
+          "text": "🏅 You've earned a Badge!",
+          "horizontalAlignment": "Center",
+          "weight": "Bolder",
+          "size": "Medium"
+        },
+        {
+          "type": "TextBlock",
+          "text": " Congratulations, {% if user.display_name %}{{ user.display_name }}{% else %}T-ROCer{% endif %}!",
+          "horizontalAlignment": "Center",
+          "size": "ExtraLarge",
+          "weight": "Bolder"
+        },
+        {
+          "type": "TextBlock",
+          "text": "{% if reward_obj and reward_obj.display_name %}{{ reward_obj.display_name }}{% else %}{{ reward }}{% endif %}",
+          "horizontalAlignment": "Center",
+          "size": "Large",
+          "weight": "Bolder"
+        },
+        {
+          "type": "TextBlock",
+          "text": "{{ awarded_at }}",
+          "horizontalAlignment": "Center"
+        }
+      ],
+      "bleed": true,
+      "style": "emphasis"
+    },
+    {
+      "type": "ColumnSet",
+      "columns": [
+        { "type": "Column", "width": "stretch", "items": [] },
+        {
+          "type": "Column",
+          "width": "auto",
+          "items": [
+            {% if reward_icon %}
+            {
+              "type": "Image",
+              "url": "{{ reward_icon }}",
+              "horizontalAlignment": "Center",
+              "size": "Large"
+            }
+            {% elif reward_emoji %}
+            {
+              "type": "TextBlock",
+              "text": "{{ reward_emoji }}",
+              "horizontalAlignment": "Center",
+              "size": "ExtraLarge"
+            }
+            {% else %}
+            {
+              "type": "Image",
+              "url": "https://front.trocdigital.io/assets/img/programs/rewards/icon.png",
+              "horizontalAlignment": "Center",
+              "size": "Large"
+            }
+            {% endif %}
+          ]
+        },
+        { "type": "Column", "width": "stretch", "items": [] }
+      ],
+      "spacing": "Large"
+    },
+    {
+      "type": "TextBlock",
+      "text": "{{ reward }}",
+      "horizontalAlignment": "Center",
+      "weight": "Bolder",
+      "size": "Large",
+      "spacing": "Medium"
+    },
+    {
+      "type": "TextBlock",
+      "text": "{{ message }}",
+      "wrap": true,
+      "spacing": "Medium",
+      "horizontalAlignment": "Center"
+    },
+    {
+      "type": "ColumnSet",
+      "columns": [
+        {
+          "type": "Column",
+          "items": [
+            { "type": "TextBlock", "text": "Recognized by", "weight": "Bolder", "spacing": "Small" },
+            { "type": "TextBlock", "text": "{{ giver_name }}", "size": "Medium", "weight": "Bolder" }
+          ],
+          "width": "auto"
+        },
+        {
+          "type": "Column",
+          "items": [
+            {% if reward_emoji %}
+            { "type": "TextBlock", "text": "{{ reward_emoji }}", "horizontalAlignment": "Center", "size": "ExtraLarge" }
+            {% else %}
+            { "type": "TextBlock", "text": "🏅", "horizontalAlignment": "Center", "size": "ExtraLarge" }
+            {% endif %}
+          ],
+          "width": "auto"
+        }
+      ],
+      "spacing": "Medium"
+    }
+  ]
+}
