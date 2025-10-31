@@ -3,9 +3,8 @@ import importlib
 import asyncio
 from datetime import datetime
 import contextlib
-from datamodel import BaseModel
 from jinja2 import TemplateError
-from datamodel.parsers.json import json_encoder, json_decoder
+from datamodel.parsers.json import json_decoder
 from datamodel.exceptions import ValidationError, ParserError
 from asyncdb.exceptions import DriverError
 from navconfig.logging import logging
@@ -13,7 +12,7 @@ from navconfig import config
 from notify.providers.teams import Teams
 from notify.providers.ses import Ses
 from notify.models import Actor
-from settings.settings import (
+from ..conf import (
     REWARDS_CLIENT_ID,
     REWARDS_CLIENT_SECRET,
     REWARDS_USER,
@@ -149,7 +148,7 @@ class RewardObject:
             self.logger.notice(
                 f"Reward: Loading Rule: {rule}"
             )
-            module_path = "services.rewards.rules"
+            module_path = "rewards.rules"
             module = importlib.import_module(
                 module_path, rule
             )
@@ -209,7 +208,7 @@ class RewardObject:
                 f"Reward: Loading Rule from dict: {rule_name}"
             )
 
-            module_path = "services.rewards.rules"
+            module_path = "rewards.rules"
             module = importlib.import_module(module_path, rule_name)
             rule_class = getattr(module, rule_name)
             return rule_class(

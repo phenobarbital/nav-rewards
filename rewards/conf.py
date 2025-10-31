@@ -2,6 +2,7 @@
 Main configuration for Rewards.
 """
 import sys
+from pathlib import Path
 from navconfig import config, BASE_DIR, DEBUG
 from navconfig.logging import logging
 
@@ -34,6 +35,12 @@ REDIS_DB = config.get('REDIS_DB', fallback=1)
 REDIS_URL = f"redis://{REDIS_HOST}:{REDIS_PORT}/{REDIS_DB}"
 REDIS_SESSION_DB = config.get("REDIS_SESSION_DB", fallback=0)
 
+# Static directory
+STATIC_DIR = config.get('STATIC_DIR', fallback=BASE_DIR.joinpath('static'))
+if isinstance(STATIC_DIR, str):
+    STATIC_DIR = Path(STATIC_DIR)
+
+
 # Azure Bot:
 MS_TENANT_ID = config.get('MS_TENANT_ID')
 MS_CLIENT_ID = config.get('MS_CLIENT_ID')
@@ -60,6 +67,9 @@ REWARDS_TENANT_ID = config.get('REWARDS_TENANT_ID')
 #### Microsoft Teams Bot
 BOT_REWARDS_ID = config.get("BOT_REWARDS_ID")
 BOT_REWARDS_SECRET = config.get("BOT_REWARDS_SECRET")
+
+## Configuration:
+TIMEZONE = config.get('TIMEZONE', fallback='UTC')
 
 """
 Notification System

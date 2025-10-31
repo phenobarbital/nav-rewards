@@ -8,7 +8,7 @@ import aiormq
 from transitions import Machine, State
 from navconfig.logging import logging
 from navigator_auth.libs.json import json_encoder, json_decoder
-from resources.users import User
+from navigator_auth.models import User
 from .event import EventReward
 from ..env import Environment
 from ..context import EvalContext, achievement_registry
@@ -292,6 +292,8 @@ class WorkflowReward(EventReward):
         model._after_step_transition = _after_step_transition.__get__(model)
         model._on_workflow_completed = _on_workflow_completed.__get__(model)
 
+        return model
+
     async def _evaluate_step_condition(
         self,
         step_name: str,
@@ -416,7 +418,7 @@ class WorkflowReward(EventReward):
                 rule = AchievementRule(**rule_params)
             else:
                 # Load other rule types
-                module_path = f"services.rewards.rules.{rule_class.lower()}"
+                module_path = f"rewards.rules.{rule_class.lower()}"
                 module = importlib.import_module(module_path)
                 rule_cls = getattr(module, rule_class)
                 rule = rule_cls(**rule_params)

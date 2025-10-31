@@ -3,7 +3,7 @@ from typing import Optional, Any
 import aiormq
 from datamodel import BaseModel, Field
 from navigator_auth.libs.json import json_encoder, json_decoder
-from resources.users import User
+from navigator_auth.models import User
 from .event import EventReward
 from ..models import (
     RewardView,

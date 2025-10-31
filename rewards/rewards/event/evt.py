@@ -2,9 +2,11 @@ from collections.abc import Iterable
 from typing import Optional
 import aiormq
 import pandas as pd
-from querysource.queries.qs import QS
-from querysource.exceptions import DataNotFound
-from resources.users import User
+try:
+    from querysource.queries.qs import QS
+    from querysource.exceptions import DataNotFound
+except ImportError:
+    print('Unable to load QuerySource')
 from ..base import RewardObject
 from ...models import (
     RewardView,

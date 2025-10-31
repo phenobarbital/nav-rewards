@@ -1,9 +1,12 @@
+import contextlib
 from datetime import datetime, timedelta
 from dateutil.relativedelta import relativedelta
 import pandas as pd
-from querysource.queries.qs import QS
-from querysource.exceptions import DataNotFound
-import contextlib
+try:
+    from querysource.queries.qs import QS
+    from querysource.exceptions import DataNotFound
+except ImportError:
+    print("QuerySource not Found")
 from ..context import EvalContext
 from ..env import Environment
 from .abstract import AbstractRule

@@ -33,7 +33,7 @@ from ..conf import (
     default_dsn,
     TIMEZONE,
     REWARD_SCHEDULER,
-    CACHE_URL
+    REDIS_URL
 )
 from ..registry import AchievementLoader
 from ..context import EvalContext, achievement_registry
@@ -159,7 +159,7 @@ class RewardsEngine:
     def get_storage(self, name: str, **kwargs):
         """get_storage.
         """
-        classpath = f'services.rewards.storages.{name}'
+        classpath = f'rewards.storages.{name}'
         classname = f'{name.capitalize()}Storage'
         try:
             module = importlib.import_module(
@@ -808,14 +808,14 @@ class RewardsEngine:
         # Achievement Loader:
         loader = AchievementLoader(
             registry=achievement_registry,
-            base_path='services.rewards.functions'
+            base_path='rewards.functions'
         )
         loader.preload_modules(
             ['engagement', 'rewards']
         )
         # we can also validate critical achievement functions
         critical_functions = [
-            'services.rewards.functions.engagement.get_login_streak'
+            'rewards.functions.engagement.get_login_streak'
         ]
         for func_path in critical_functions:
             if not loader.validate_function_path(func_path):
@@ -838,7 +838,7 @@ class RewardsEngine:
         # Create a Pool-based Database Connection
         await self.load_rewards()
         await self.set_connection()
-        await self.start_redis(CACHE_URL)
+        await self.start_redis(REDIS_URL)
         try:
             # starting scheduler
             self.scheduler.start()

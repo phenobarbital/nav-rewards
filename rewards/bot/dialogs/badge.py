@@ -16,7 +16,7 @@ from botbuilder.dialogs import (
     DialogTurnResult,
     DialogTurnStatus,
 )
-from resources.users import User
+from navigator_auth.models import User
 
 
 class BadgeDialog(ComponentDialog):

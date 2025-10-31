@@ -99,7 +99,7 @@ class AchievementLoader:
     def __init__(
         self,
         registry: AchievementRegistry,
-        base_path: str = "services.rewards.functions"
+        base_path: str = "rewards.functions"
     ):
         self.registry = registry
         self.base_path = base_path

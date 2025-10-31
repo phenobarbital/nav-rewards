@@ -2,7 +2,7 @@ from abc import abstractmethod
 from collections.abc import Iterable
 from typing import Any, Optional
 import pandas as pd
-from resources.users import User
+from navigator_auth.models import User
 from .abstract import AbstractRule
 from ..env import Environment
 from ..context import EvalContext

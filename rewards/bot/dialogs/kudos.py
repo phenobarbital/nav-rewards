@@ -15,7 +15,7 @@ from botbuilder.dialogs import (
     DialogTurnResult,
     DialogTurnStatus,
 )
-from resources.users import User
+from navigator_auth.models import User
 from ...kudos.models import KudosTag, INITIAL_KUDOS_TAGS
 
 

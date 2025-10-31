@@ -1,9 +1,10 @@
 from typing import Optional
-from navconfig.logging import logging
 from abc import ABC, abstractmethod
 import uuid
+from navconfig.logging import logging
 from ..env import Environment
 from ..context import EvalContext
+
 
 class AbstractRule(ABC):
     """AbstractRule Rule class.

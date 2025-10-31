@@ -34,21 +34,28 @@ classifiers = [
 
 # Core runtime deps (lifted from your previous setup.py)
 dependencies = [
-  "uvloop>=0.20.0",
   "aiosmtplib>=3.0.2",
   "python-datamodel>=0.3.12",
   "navconfig[default]>=1.7.0",
   "navigator-api[uvloop,locale]>=2.14.4",
+  "async-notify[all]>=1.5.1",
   # Extra resources
   "qworker>=1.13.1",
   "transitions==0.9.2",
   # MS Teams integration
   "azure-teambots>=0.1.1",
+  "apscheduler==3.11.0"
 ]
 
 [project.optional-dependencies]
 events = [
   "aiormq==6.9.2",
+]
+all = [
+  "transitions==0.9.2",
+  "aiormq==6.9.2",
+  "azure-teambots>=0.1.1",
+  "apscheduler==3.11.0"
 ]
 
 [project.scripts]

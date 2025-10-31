@@ -287,7 +287,7 @@
         "rules": [
             [
                 "AchievementRule", {
-                    "function_path": "services.rewards.functions.engagement.get_login_streak",
+                    "function_path": "rewards.functions.engagement.get_login_streak",
                     "threshold": 30,
                     "operator": "gte"
                 }
@@ -493,7 +493,7 @@
                 {
                     "step": "Product Knowledge",
                     "condition": {
-                        "function_path": "services.rewards.functions.training.check_product_knowledge",
+                        "function_path": "rewards.functions.training.check_product_knowledge",
                         "threshold": 80,
                         "operator": "gte"
                     }
@@ -501,7 +501,7 @@
                 {
                     "step": "Sales Techniques",
                     "condition": {
-                        "function_path": "services.rewards.functions.training.check_sales_techniques",
+                        "function_path": "rewards.functions.training.check_sales_techniques",
                         "threshold": 75,
                         "operator": "gte"
                     }
@@ -509,7 +509,7 @@
                 {
                     "step": "Customer Service",
                     "condition": {
-                        "function_path": "services.rewards.functions.training.check_customer_service",
+                        "function_path": "rewards.functions.training.check_customer_service",
                         "threshold": 80,
                         "operator": "gte"
                     }
@@ -517,7 +517,7 @@
                 {
                     "step": "Closing Deals",
                     "condition": {
-                        "function_path": "services.rewards.functions.training.check_closing_deals",
+                        "function_path": "rewards.functions.training.check_closing_deals",
                         "threshold": 85,
                         "operator": "gte"
                     }
@@ -525,22 +525,22 @@
                 {
                     "step": "Final Assessment",
                     "condition": {
-                        "function_path": "services.rewards.functions.training.check_final_assessment",
+                        "function_path": "rewards.functions.training.check_final_assessment",
                         "threshold": 90,
                         "operator": "gte"
                     }
                 }
             ],
             "completion_callbacks": [
-                "services.rewards.callbacks.training.notify_completion",
-                "services.rewards.callbacks.training.update_employee_record"
+                "rewards.callbacks.training.notify_completion",
+                "rewards.callbacks.training.update_employee_record"
             ],
             "step_callbacks": {
                 "Product Knowledge": [
-                    "services.rewards.callbacks.training.unlock_sales_techniques"
+                    "rewards.callbacks.training.unlock_sales_techniques"
                 ],
                 "Sales Techniques": [
-                    "services.rewards.callbacks.training.unlock_customer_service"
+                    "rewards.callbacks.training.unlock_customer_service"
                 ]
             },
             "events": [
