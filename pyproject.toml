@@ -1,0 +1,96 @@
+[build-system]
+requires = [
+    "setuptools>=67.6.1",
+    "setuptools_scm[toml]>=6.0",
+    "Cython==3.0.11",
+    "wheel>=0.44.0"
+]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "nav-rewards"
+dynamic = ["version"]
+description = "Engine for sending Kudos and Rewards to users, built on top of aiohttp + navigator-api."
+readme = "README.md"
+license = "MIT"
+requires-python = ">=3.9.16"
+authors = [{ name = "Jesus Lara Gimenez", email = "jesuslarag@gmail.com" }]
+keywords = ["asyncio", "rewards", "kudos", "notifications", "email", "teams", "telegram"]
+classifiers = [
+  "Development Status :: 4 - Beta",
+  "Intended Audience :: Developers",
+  "Intended Audience :: System Administrators",
+  "Operating System :: OS Independent",
+  "Programming Language :: Python :: 3 :: Only",
+  "Programming Language :: Python :: 3.9",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Typing :: Typed",
+  "Environment :: Web Environment",
+  "Framework :: AsyncIO",
+  "Topic :: Software Development :: Libraries :: Python Modules",
+]
+
+# Core runtime deps (lifted from your previous setup.py)
+dependencies = [
+  "uvloop>=0.20.0",
+  "aiosmtplib>=3.0.2",
+  "python-datamodel>=0.3.12",
+  "navconfig[default]>=1.7.0",
+]
+
+[project.optional-dependencies]
+default = [
+]
+
+[project.scripts]
+rewards = "rewards.__main__:main"
+
+[project.urls]
+Homepage = "https://github.com/phenobarbital/nav-rewards"
+Source = "https://github.com/phenobarbital/nav-rewards"
+Tracker = "https://github.com/phenobarbital/nav-rewards/issues"
+Documentation = "https://github.com/phenobarbital/nav-rewards"
+Funding = "https://paypal.me/phenobarbital"
+"Say Thanks!" = "https://saythanks.io/to/phenobarbital"
+
+[tool.setuptools]
+license-files = ["LICENSE*"]
+
+# Versioning like ai-parrot: generate a _version.py AND keep current pattern reading rewards.version.__version__
+[tool.setuptools_scm]
+write_to = "rewards/_version.py"
+
+[tool.setuptools.dynamic]
+version = { attr = "rewards.version.__version__" }
+
+# Package discovery
+[tool.setuptools.packages.find]
+exclude = [
+  "env*", "etc*", "bin*", "contrib*", "docs*", "documents*", "tests*",
+  "examples*", "libraries*", "db*", "cache*", ".jupyter*", "locale*",
+  "lab*", "notebooks*", "resources*", "static*", "templates*", "settings*",
+  "videos*"
+]
+
+[tool.setuptools.package-data]
+notify = ["py.typed"]
+
+[tool.uv]
+# Keep the moviepy pin consistent (pattern borrowed from ai-parrot)
+override-dependencies = ["moviepy==2.2.1"]
+
+[tool.pytest.ini_options]
+addopts = ["--strict-config", "--strict-markers"]
+filterwarnings = [
+  "error",
+  "ignore:The loop argument is deprecated since Python 3\\.8, and scheduled for removal in Python 3\\.10:DeprecationWarning:asyncio",
+]
+
+[tool.mypy]
+pretty = true
+ignore_missing_imports = true
+
+[tool.flake8]
+ignore = "E501,W503,E203"
