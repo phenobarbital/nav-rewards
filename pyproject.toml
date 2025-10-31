@@ -38,10 +38,17 @@ dependencies = [
   "aiosmtplib>=3.0.2",
   "python-datamodel>=0.3.12",
   "navconfig[default]>=1.7.0",
+  "navigator-api[uvloop,locale]>=2.14.4",
+  # Extra resources
+  "qworker>=1.13.1",
+  "transitions==0.9.2",
+  # MS Teams integration
+  "azure-teambots>=0.1.1",
 ]
 
 [project.optional-dependencies]
-default = [
+events = [
+  "aiormq==6.9.2",
 ]
 
 [project.scripts]
@@ -78,8 +85,18 @@ exclude = [
 notify = ["py.typed"]
 
 [tool.uv]
-# Keep the moviepy pin consistent (pattern borrowed from ai-parrot)
-override-dependencies = ["moviepy==2.2.1"]
+override-dependencies = [
+    "emoji==1.7.0",
+    "msal==1.32.0",
+    "jsonpickle==3.0.2",
+    "watchdog>=6.0.0"
+]
+dev-dependencies = [
+    "pytest>=7.0.0",
+    "pytest-asyncio",
+    "black",
+    "pylint"
+]
 
 [tool.pytest.ini_options]
 addopts = ["--strict-config", "--strict-markers"]
