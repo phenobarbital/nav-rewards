@@ -150,6 +150,7 @@ class AttendanceRule(AbstractRule):
     def _calculate_rolling_range(self, reference_date: datetime) -> tuple:
         """Calculate rolling time window."""
         # End date is yesterday (to avoid incomplete current day)
+        start_date = None
         end_date = reference_date.replace(
             hour=23,
             minute=59,
@@ -372,8 +373,13 @@ class AttendanceRule(AbstractRule):
             # Evaluate attendance
             result = self.evaluate_attendance(expected_dates, actual_dates)
 
+            employee_id = getattr(
+                ctx.user,
+                self.employee_identifier,
+                'unknown'
+            )
             self.logger.info(
-                f"Attendance evaluation for {ctx.user.associate_id}: {result} "
+                f"Attendance evaluation for {employee_id}: {result} "
                 f"({self.match} attendance over {self.count} {self.unit}(s))"
             )
 

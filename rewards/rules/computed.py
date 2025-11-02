@@ -117,17 +117,18 @@ class ComputedRule(AbstractRule):
         :return: tuple with the user context.
         """
         # Emulate Session Context:
+        email = user.email
         if not session:
             session = {
-                "username": user.email,
-                "id": user.email,
+                "username": email,
+                "id": email,
                 "user_id": user.user_id,
                 "name": user.display_name,
                 "first_name": user.first_name,
                 "last_name": user.last_name,
                 "display_name": user.display_name,
-                "email": user.email,
-                "associate_id": user.associate_id,
+                "email": email,
+                "associate_id": getattr(user, 'associate_id', email),
                 "birth_date": user.birth_date(),
                 "employment_duration": user.employment_duration(),
                 "session": {

@@ -1,7 +1,7 @@
 from typing import Optional, Any, Union
 import importlib
 import asyncio
-from datetime import datetime
+from datetime import datetime, timedelta
 import contextlib
 from jinja2 import TemplateError
 from datamodel.parsers.json import json_decoder
@@ -112,7 +112,7 @@ class RewardObject:
             "name": user.display_name,
             "email": user.email,
             "birth_date": user.birth_date(),
-            "associate_id": user.associate_id,
+            "associate_id": getattr(user, 'associate_id', user.email),
             "employment_duration": user.employment_duration(),
             "session": {
                 "groups": user.groups,
@@ -372,8 +372,7 @@ class RewardObject:
         # Check User/Session Context:
         if self._conditions:
             fit_results["fit_context"] = any(
-                a in ctx.store['user_keys'] or
-                a in ctx.store['session'].keys() or
+                a in ctx.store['user_keys'] or a in ctx.store['session'].keys() or
                 getattr(ctx, a, None) is not None
                 for a in self._conditions.keys()
             )
@@ -488,28 +487,127 @@ class RewardObject:
             })
             return False
 
+    @staticmethod
+    def _timeframe_to_timedelta(timeframe: Optional[str]) -> Optional[timedelta]:
+        """Convert a timeframe string into a timedelta.
+
+        Supports legacy values like ``daily`` as well as the new
+        ``minutes|hours|days`` formats, optionally with a quantity
+        (e.g. ``hours:2``).
+        """
+        if not timeframe:
+            return None
+
+        raw_timeframe = timeframe.strip().lower()
+        quantity = 1
+        if ':' in raw_timeframe:
+            unit, qty = raw_timeframe.split(':', 1)
+            raw_timeframe = unit.strip()
+            try:
+                quantity = int(qty.strip())
+            except ValueError:
+                return None
+            if quantity <= 0:
+                return None
+
+        aliases = {
+            'minute': 'minutes',
+            'minutes': 'minutes',
+            'min': 'minutes',
+            'hour': 'hours',
+            'hours': 'hours',
+            'hr': 'hours',
+            'hourly': 'hours',
+            'day': 'days',
+            'days': 'days',
+            'daily': 'days',
+            'week': 'weeks',
+            'weeks': 'weeks',
+            'weekly': 'weeks',
+            'biweekly': 'weeks',
+            'month': 'months',
+            'months': 'months',
+            'monthly': 'months',
+            'quarter': 'quarters',
+            'quarters': 'quarters',
+            'quarterly': 'quarters',
+        }
+
+        unit = aliases.get(raw_timeframe, raw_timeframe)
+        if unit == 'minutes':
+            return timedelta(minutes=quantity)
+        if unit == 'hours':
+            return timedelta(hours=quantity)
+        if unit == 'days':
+            return timedelta(days=quantity)
+        if unit == 'weeks':
+            return timedelta(weeks=quantity)
+        if unit == 'months':
+            # Approximate months as 30 days to maintain backward compatibility
+            return timedelta(days=30 * quantity)
+        return timedelta(days=90 * quantity) if unit == 'quarters' else None
+
     async def has_awarded(
         self,
         user: int,
         env: Environment,
         conn: Any,
-        timeframe: Optional[str] = None
+        timeframe: Optional[str] = None,
+        giver_user: Optional[int] = None,
+        cooldown_minutes: int = 1
     ) -> bool:
-        # Check if the user already has this award
-        query = """
-        SELECT awarded_at FROM rewards.users_rewards \
-            WHERE receiver_user = $1::int AND reward_id = $2::int;
         """
+        Check if a user has already received this reward.
+
+        Args:
+            user: The user object
+            env: Environment with current timestamp
+            conn: Database connection
+            timeframe: Optional timeframe for multiple rewards ('daily', 'weekly', 'monthly', 'hourly')
+            cooldown_minutes: Minimum minutes between receiving same badge (default: 1)
+
+        Returns:
+            bool: True if user already has this reward (within constraints), False otherwise
+        """
+        query = """
+SELECT awarded_at, giver_user FROM rewards.users_rewards
+WHERE receiver_user = $1::int AND reward_id = $2::int
+AND revoked = FALSE
+AND deleted_at IS NULL
+ORDER BY awarded_at DESC;
+        """
+        params = [user.user_id, self.id]
+        use_giver_filter = giver_user is not None and self.multiple
+        if use_giver_filter:
+            query += " AND giver_user = $3::int"
+            params.append(giver_user)
+        query += ";"
         rewards = await conn.fetch_all(
-            query, user.user_id, self.id
+            query,
+            *params
         )
 
         if not rewards:
-            # No rewards for this user.
+            # No rewards were awarded for this user.
             return False
 
-        # print('WAS RECEIVED > ', rewards, user)
+        # check if this reward can be applied multiple times:
+        if not self.multiple:
+            return True  # Non-multiple rewards are awarded once
 
+        # SPAM PREVENTION: Check cooldown period
+        most_recent_award = rewards[0]['awarded_at']
+        time_since_last_award = env.timestamp - most_recent_award
+        if time_since_last_award < timedelta(minutes=self._reward.cooldown_minutes or cooldown_minutes):  # noqa
+            self.logger.debug(
+                f"Cooldown active: Last award was {time_since_last_award.total_seconds():.0f}s ago "
+            )
+            return True  # Within cooldown period
+
+        relevant_rewards = rewards
+
+        timeframe_key = timeframe.strip().lower() if timeframe else None
+        # Let's check if the reward can be awarded multiple times based on Time Frame
         allowed_timeframes = {
             'daily': lambda timestamp: timestamp.date(),
             'weekly': lambda timestamp: timestamp.strftime('%Y-%W'),
@@ -518,32 +616,30 @@ class RewardObject:
                 minute=0,
                 second=0,
                 microsecond=0
-            )
+            ),
+            'quarterly': lambda timestamp: (
+                f"{timestamp.year}-Q{((timestamp.month - 1) // 3) + 1}"
+            ),
         }
 
-        # check if this reward can be applied multiple times:
-        if not self.multiple:
-            return True  # Non-multiple rewards are awarded once
+        if timeframe_key in allowed_timeframes:
+            timeframe_check = allowed_timeframes[timeframe_key]
+            return any(
+                timeframe_check(env.timestamp) == timeframe_check(rw['awarded_at'])
+                for rw in relevant_rewards
+            )
 
-        # Let's check if the reward can be awarded multiple times
-        # based on Time Frame
-        if timeframe:
-            print('CHECK TIMEFRAME > ', timeframe)
-            if timeframe not in allowed_timeframes:
-                raise ValueError(
-                    f"Invalid timeframe: {timeframe}"
-                )
-            timeframe_check = allowed_timeframes[timeframe]
-            for rw in rewards:
-                if timeframe_check(
-                    env.timestamp
-                ) == timeframe_check(rw['awarded_at']):
+        if (timeframe_delta := self._timeframe_to_timedelta(timeframe)):
+            threshold = env.timestamp - timeframe_delta
+            for rw in relevant_rewards:
+                awarded_at = rw['awarded_at']
+                if awarded_at >= threshold:
                     return True
+            return False
 
         return any(
-            env.timestamp.replace(second=0, microsecond=0)
-            == rw['awarded_at'].replace(second=0, microsecond=0)
-            for rw in rewards
+            env.timestamp.replace(second=0, microsecond=0) == rw['awarded_at'].replace(second=0, microsecond=0)  # noqa
+            for rw in relevant_rewards
         )
 
     async def apply(

@@ -45,6 +45,7 @@ class ADPeople(Model):
     associate_oid: str = Field(required=False)
     job_code_title: str = Field(required=False)
     position_id: str = Field(required=False)
+    reports_to: Optional[int] = Field(required=False)
     created_at: datetime = Field(
         required=False,
         default=datetime.now(),
@@ -166,6 +167,7 @@ class Reward(Model):
         required=False, default_factory=list, multiple=True
     )
     effective_date: datetime = Field(required=False, default=datetime.now)
+    cooldown_minutes: Optional[int] = Field(default=1)
     is_enabled: bool = Field(required=False, default=True)
     inserted_at: datetime = Field(
         required=False,

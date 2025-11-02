@@ -94,7 +94,7 @@ class BadgeAssignHandler(FormModel):
             )
             data.receiver_user = user.user_id
             data.receiver_email = user.email
-            data.receiver_employee = user.associate_id
+            data.receiver_employee = getattr(user, 'associate_id', user.email)
             data.display_name = user.display_name
             data.receiver_name = user.display_name
         except RuntimeError as err:
@@ -147,9 +147,36 @@ class BadgeAssignHandler(FormModel):
             if await reward.has_awarded(
                 user, env, conn, reward.reward().timeframe
             ):
+                # Check if it's due to cooldown or actual duplicate
+                query = """
+                SELECT awarded_at FROM rewards.users_rewards
+                WHERE receiver_user = $1::int
+                AND reward_id = $2::int
+                AND revoked = FALSE
+                AND deleted_at IS NULL
+                ORDER BY awarded_at DESC
+                LIMIT 1;
+                """
+                last_award = await conn.fetch_one(
+                    query, user.user_id, reward.id
+                )
+
+                time_since_last = None
+                if last_award:
+                    time_since_last = env.timestamp - last_award['awarded_at']
+
+                error_msg = f"User {user.user_id}:{user.display_name} already received the Badge."
+
+                if time_since_last and time_since_last.total_seconds() < 60:
+                    error_msg = (
+                        f"Badge cooldown active. Please wait "
+                        f"{60 - int(time_since_last.total_seconds())} more seconds "
+                        f"before awarding this badge again."
+                    )
+
                 raise self.error(
                     response={
-                        "message": f"User {user.user_id}:{user.display_name} already received the Badge."  # noqa: E501
+                        "message": error_msg
                     }
                 )
             # Step 6: Apply reward to User

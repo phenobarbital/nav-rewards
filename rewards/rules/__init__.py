@@ -6,6 +6,7 @@ from .random_users import RandomUsers
 from .anniversary import WorkAnniversary
 from .attendance import AttendanceRule
 from .achievement import AchievementRule
+from .hierarchy import DirectManagerRule
 from .other import (
     EarlyBirdRule,
     MidWeekMotivatorRule,
@@ -26,6 +27,7 @@ __all__ = (
     'WorkAnniversary',
     'AttendanceRule',
     'AchievementRule',
+    'DirectManagerRule',
     'EarlyBirdRule',
     'MidWeekMotivatorRule',
     'QuarterEndChampionRule',
