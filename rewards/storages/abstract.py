@@ -84,7 +84,7 @@ class AbstractStorage(metaclass=ABCMeta):
         if rules:
             cleaned_rules = []
             for rule in rules:
-                if isinstance(rule, (list, dict)):
+                if isinstance(rule, (list, dict, str)):
                     cleaned_rules.append(rule)
                 else:
                     self.logger.warning(

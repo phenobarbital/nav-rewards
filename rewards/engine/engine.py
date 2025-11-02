@@ -138,9 +138,6 @@ class RewardsEngine:
             loader=self.loader,
             **jinja_config
         )
-        # self.setup(
-        #     app
-        # )
 
     @property
     def connection(self):
@@ -308,7 +305,6 @@ class RewardsEngine:
 
             # Handle timezone
             if timezone := job_config.get('timezone'):
-                import zoneinfo
                 job_args['timezone'] = zoneinfo.ZoneInfo(timezone)
             else:
                 job_args['timezone'] = self._timezone
@@ -725,11 +721,11 @@ class RewardsEngine:
         )
         BadgeAssignHandler.configure(
             self.app,
-            '/api/v1/badge_assign'
+            '/rewards/api/v1/badge_assign'
         )
         EmployeeSearchHandler.configure(
             self.app,
-            '/api/v1/rewards/employee_search'
+            '/rewards/api/v1/employee_search'
         )
         RewardGroupHandler.configure(
             self.app, '/rewards/api/v1/reward_groups'
