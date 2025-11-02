@@ -1,10 +1,12 @@
-
 include LICENSE
-include CHANGES.rst
-include CONTRIBUTING.md
-include CODE_OF_CONDUCT.md
 include README.md
+global-include *.typed
+recursive-include rewards *
+recursive-include rewards *.pyi
 include Makefile
-graft notify
+graft rewards
 global-exclude *.pyc
 prune docs/_build
+prune tests
+prune resources
+prune *.egg-info
