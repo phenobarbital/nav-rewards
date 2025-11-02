@@ -923,7 +923,7 @@ class RewardsEngine:
                 await self.process_batch(batch, env, _filtered)
             except Exception as err:
                 self.logger.error(
-                    f"Error processing batch {i//self._batch_size + 1}: {err}"
+                    f"Error processing batch {i // self._batch_size + 1}: {err}"
                 )
                 continue
 
@@ -964,7 +964,7 @@ class RewardsEngine:
                 "last_name": user.last_name,
                 "display_name": user.display_name,
                 "email": user.email,
-                "associate_id": user.associate_id,
+                "associate_id": getattr(user, 'associate_id', user.email),
                 "associate_oid": user.associate_oid,
                 "department": user.department_code,
                 "job_code": user.job_code,
@@ -1096,8 +1096,18 @@ class RewardsEngine:
                         # Reward does not fit the user
                         return False
 
+                    session_user_id = None
+                    try:
+                        session_user_id = ctx.session.get('user_id')
+                    except AttributeError:
+                        session_user_id = getattr(ctx.session, 'user_id', None)
+
                     if await reward.has_awarded(
-                        user, env, conn, reward.timeframe
+                        user,
+                        env,
+                        conn,
+                        reward.timeframe,
+                        giver_user=session_user_id
                     ):
                         # User already has this reward
                         return False
@@ -1153,8 +1163,18 @@ class RewardsEngine:
             async with self._user_semaphore:
                 async with await self.connection.acquire() as conn:
                     # Evaluate Reward for this User:
+                    session_user_id = None
+                    try:
+                        session_user_id = ctx.session.get('user_id')
+                    except AttributeError:
+                        session_user_id = getattr(ctx.session, 'user_id', None)
+
                     if await reward.has_awarded(
-                        ctx.user, env, conn, reward.reward().timeframe
+                        ctx.user,
+                        env,
+                        conn,
+                        reward.reward().timeframe,
+                        giver_user=session_user_id
                     ):
                         # User already has this reward
                         return False

@@ -56,6 +56,7 @@ EVENT_MANAGER_QUEUE_SIZE = config.getint(
 ENABLE_REWARDS = config.getboolean("ENABLE_REWARDS", fallback=True)
 REWARD_SCHEDULER = config.getboolean("REWARD_SCHEDULER", fallback=True)
 REWARD_MIDDLEWARE = config.getboolean("REWARD_MIDDLEWARE", fallback=True)
+REWARD_COOLDOWN_MINUTES = config.getint("REWARD_COOLDOWN_MINUTES", fallback=10)
 
 # MS Teams Configuration
 REWARDS_CLIENT_ID = config.get('REWARDS_CLIENT_ID')

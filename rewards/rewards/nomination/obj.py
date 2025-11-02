@@ -629,16 +629,17 @@ class NominationAward(WorkflowReward):
             )
 
             # Create reward record
+            email = winner.nominee_email
             args = {
                 "reward_id": self._reward.reward_id,
                 "reward": self._reward.reward,
                 "receiver_user": winner.nominee_user_id,
-                "receiver_email": winner.nominee_email,
+                "receiver_email": email,
                 "receiver_id": winner.nominee_user_id,
                 "receiver_employee": getattr(
                     winner_user,
                     'associate_id',
-                    None
+                    email
                 ),
                 "points": self._reward.points,
                 "awarded_at": env.timestamp,
@@ -660,16 +661,17 @@ class NominationAward(WorkflowReward):
 
     def _get_context_user(self, user) -> EvalContext:
         """Create evaluation context for user."""
+        email = user.email
         session = {
-            "username": user.email,
-            "id": user.email,
+            "username": email,
+            "id": email,
             "user_id": user.user_id,
             "name": user.display_name,
             "first_name": getattr(user, 'first_name', ''),
             "last_name": getattr(user, 'last_name', ''),
             "display_name": user.display_name,
             "email": user.email,
-            "associate_id": getattr(user, 'associate_id', None),
+            "associate_id": getattr(user, 'associate_id', email),
             "session": {
                 "groups": getattr(user, 'groups', []),
                 "programs": getattr(user, 'programs', []),

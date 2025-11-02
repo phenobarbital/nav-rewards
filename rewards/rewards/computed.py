@@ -91,13 +91,15 @@ class ComputedReward(RewardObject):
             'message',
             await self._reward_message(ctx, env, ctx.user)
         )
+        userid = ctx.user.user_id
+        email = ctx.user.email
         args = {
             "reward_id": self._reward.reward_id,
             "reward": self._reward.reward,
-            "receiver_user": ctx.user.user_id,
-            "receiver_email": ctx.user.email,
-            "receiver_id": ctx.user.user_id,
-            "receiver_employee": ctx.user.associate_id,
+            "receiver_user": userid,
+            "receiver_email": email,
+            "receiver_id": userid,
+            "receiver_employee": getattr(ctx.user, 'associate_id', email),
             "points": self._reward.points,
             "awarded_at": env.timestamp,
             **kwargs

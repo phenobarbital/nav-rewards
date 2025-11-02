@@ -557,7 +557,7 @@ class BadgeBot(AbstractBot):
                 'user_id': recipient['user_id'],
                 'receiver_user': recipient['user_id'],
                 'receiver_email': recipient['email'],
-                'receiver_employee': recipient['associate_id'] or '',
+                'receiver_employee': recipient.get('associate_id', recipient['email']),
                 'receiver_id': recipient['user_id'],
                 'display_name': recipient['display_name'],
                 'points': reward_points,
