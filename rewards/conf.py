@@ -58,6 +58,15 @@ REWARD_SCHEDULER = config.getboolean("REWARD_SCHEDULER", fallback=True)
 REWARD_MIDDLEWARE = config.getboolean("REWARD_MIDDLEWARE", fallback=True)
 REWARD_COOLDOWN_MINUTES = config.getint("REWARD_COOLDOWN_MINUTES", fallback=10)
 
+## Tables:
+# System table to find people
+PEOPLE_LIST = config.get('PEOPLE_LIST', fallback='vw_people')
+PEOPLE_SCHEMA = config.get('PEOPLE_SCHEMA', fallback='navigator')
+EMPLOYEES_TABLE = config.get(
+    'EMPLOYEES_TABLE',
+    fallback=f"{PEOPLE_SCHEMA}.vw_active_employees"
+)
+
 # MS Teams Configuration
 REWARDS_CLIENT_ID = config.get('REWARDS_CLIENT_ID')
 REWARDS_CLIENT_SECRET = config.get('REWARDS_CLIENT_SECRET')

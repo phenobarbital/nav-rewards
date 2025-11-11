@@ -55,7 +55,8 @@ all = [
   "transitions==0.9.2",
   "aiormq==6.9.2",
   "azure-teambots>=0.1.1",
-  "apscheduler==3.11.0"
+  "apscheduler==3.11.0",
+  "asyncdb[arangodb]>=2.12.20",
 ]
 
 [project.scripts]
