@@ -1,7 +1,7 @@
 from typing import Optional, Any, Union
 import importlib
 import asyncio
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 import contextlib
 from jinja2 import TemplateError
 from datamodel.parsers.json import json_decoder
@@ -597,7 +597,14 @@ ORDER BY awarded_at DESC;
 
         # SPAM PREVENTION: Check cooldown period
         most_recent_award = rewards[0]['awarded_at']
-        time_since_last_award = env.timestamp - most_recent_award
+        current_ts = env.timestamp
+        if most_recent_award.tzinfo is not None:
+            most_recent_award = most_recent_award.astimezone(
+                timezone.utc
+            ).replace(tzinfo=None)
+        if current_ts.tzinfo is not None:
+            current_ts = current_ts.astimezone(timezone.utc).replace(tzinfo=None)
+        time_since_last_award = current_ts - most_recent_award
         if time_since_last_award < timedelta(minutes=self._reward.cooldown_minutes or cooldown_minutes):  # noqa
             self.logger.debug(
                 f"Cooldown active: Last award was {time_since_last_award.total_seconds():.0f}s ago "
