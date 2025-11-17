@@ -656,6 +656,16 @@ AND deleted_at IS NULL
                 second=0,
                 microsecond=0
             ),
+            'bihourly': lambda timestamp: (
+                timestamp.replace(
+                    minute=0 if timestamp.minute < 30 else 30,
+                    second=0,
+                    microsecond=0
+                )
+            ),
+            'biweekly': lambda timestamp: (
+                f"{timestamp.year}-W{((timestamp.isocalendar()[1] - 1) // 2) + 1}"
+            ),
             'quarterly': lambda timestamp: (
                 f"{timestamp.year}-Q{((timestamp.month - 1) // 3) + 1}"
             ),
