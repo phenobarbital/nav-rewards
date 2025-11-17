@@ -68,6 +68,11 @@ class BadgeAssignHandler(FormModel):
                 f"Reward System is not installed: {err}"
             )
         reward = await system.get_reward(data.reward_id)
+        if not reward:
+            self.error(
+                f"Badge {data.reward_id} not found.",
+                status=404
+            )
         session, _ = await system.get_user(self.request)
 
         # fill giver information with session data:
@@ -83,7 +88,7 @@ class BadgeAssignHandler(FormModel):
             cache=system.get_cache()
         )
         if not reward:
-            raise self.error(
+            self.error(
                 f"Badge {reward.reward().reward} not found or it's not available."  # noqa: E501
             )
         # Step 2: validate User exists on UserView and returned
@@ -98,21 +103,21 @@ class BadgeAssignHandler(FormModel):
             data.display_name = user.display_name
             data.receiver_name = user.display_name
         except RuntimeError as err:
-            raise self.error(
+            self.error(
                 response={
                     "message": "Cannot Fetch User Information.",
                     "error": f"{err}"
                 }
-            ) from err
+            )
         except Exception as err:
-            raise self.error(
+            self.error(
                 response={
                     "message": "No Assigning Badge to User.",
                     "error": f"{err}"
                 }
-            ) from err
+            )
         if user.user_id == session.user_id:
-            raise self.error(
+            self.error(
                 response={
                     "message": "You cannot assign a Badge to yourself."
                 }
@@ -129,7 +134,7 @@ class BadgeAssignHandler(FormModel):
                 "Fit at this moment.",
                 "rule": reward.failed_conditions()
             }
-            raise self.error(
+            self.error(
                 response=error
             )
         async with await system.connection.acquire() as conn:
@@ -137,7 +142,7 @@ class BadgeAssignHandler(FormModel):
             if not await reward.evaluate(
                 ctx=ctx, env=env
             ):
-                raise self.error(
+                self.error(
                     response={
                         "message": f"User {user.user_id}:{user.display_name} Cannot Receive the Badge.",   # noqa: E501
                         "reason": reward.failed_conditions()
@@ -174,7 +179,7 @@ class BadgeAssignHandler(FormModel):
                         f"before awarding this badge again."
                     )
 
-                raise self.error(
+                self.error(
                     response={
                         "message": error_msg
                     }
@@ -192,7 +197,7 @@ class BadgeAssignHandler(FormModel):
                 }
                 r, error = await reward.apply(ctx, env, conn, **apply_data)
                 if error:
-                    raise self.error(
+                    self.error(
                         response={
                             "message": error
                         },

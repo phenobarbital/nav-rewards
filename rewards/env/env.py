@@ -1,5 +1,5 @@
 from typing import Literal
-from datetime import datetime, date, time, timedelta
+from datetime import datetime, date, time, timedelta, timezone
 import time as tt
 import calendar
 from redis.asyncio.client import Redis
@@ -8,10 +8,10 @@ from datamodel import BaseModel, Field
 
 
 def now():
-    return datetime.now()
+    return datetime.now(tz=timezone.utc)
 
 def now_date():
-    return datetime.now().date()
+    return datetime.now(tz=timezone.utc).date()
 
 def curtime():
     return tt.time()

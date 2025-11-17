@@ -1,7 +1,9 @@
 from typing import Optional, Any, Union
 import importlib
+import inspect
 import asyncio
 from datetime import datetime, timedelta, timezone
+from zoneinfo import ZoneInfo
 import contextlib
 from jinja2 import TemplateError
 from datamodel.parsers.json import json_decoder
@@ -17,6 +19,7 @@ from ..conf import (
     REWARDS_CLIENT_SECRET,
     REWARDS_USER,
     REWARDS_PASSWORD,
+    TIMEZONE,
 )
 from ..models import (
     RewardView,
@@ -28,6 +31,11 @@ from ..rules import (
 from ..context import EvalContext
 from ..env import Environment
 
+
+try:
+    LOCAL_TIMEZONE = ZoneInfo(TIMEZONE)
+except Exception:
+    LOCAL_TIMEZONE = timezone.utc
 
 class RewardObject:
     def __init__(
@@ -574,14 +582,15 @@ SELECT awarded_at, giver_user FROM rewards.users_rewards
 WHERE receiver_user = $1::int AND reward_id = $2::int
 AND revoked = FALSE
 AND deleted_at IS NULL
-ORDER BY awarded_at DESC;
         """
         params = [user.user_id, self.id]
         use_giver_filter = giver_user is not None and self.multiple
         if use_giver_filter:
             query += " AND giver_user = $3::int"
             params.append(giver_user)
-        query += ";"
+        query += " ORDER BY awarded_at DESC;"
+
+        print('QUERY > ', query)
         rewards = await conn.fetch_all(
             query,
             *params
@@ -591,29 +600,52 @@ ORDER BY awarded_at DESC;
             # No rewards were awarded for this user.
             return False
 
+        print('IS MULTIPLE > ', self.multiple, type(self.multiple))
+
         # check if this reward can be applied multiple times:
         if not self.multiple:
             return True  # Non-multiple rewards are awarded once
 
+        def _to_utc(dt: datetime) -> datetime:
+            """Return a timezone-aware UTC datetime for comparisons."""
+            if dt.tzinfo is None:
+                return dt.replace(tzinfo=timezone.utc)
+            return dt.astimezone(timezone.utc)
+
+        def _to_local(dt: datetime) -> datetime:
+            """Convert a timestamp to the configured project timezone."""
+            return _to_utc(dt).astimezone(LOCAL_TIMEZONE)
+
         # SPAM PREVENTION: Check cooldown period
-        most_recent_award = rewards[0]['awarded_at']
-        current_ts = env.timestamp
-        if most_recent_award.tzinfo is not None:
-            most_recent_award = most_recent_award.astimezone(
-                timezone.utc
-            ).replace(tzinfo=None)
-        if current_ts.tzinfo is not None:
-            current_ts = current_ts.astimezone(timezone.utc).replace(tzinfo=None)
+        most_recent_award = _to_utc(rewards[0]['awarded_at'])
+        current_ts = _to_utc(env.timestamp)
+        current_ts_local = _to_local(current_ts)
+
+        effective_cooldown = self._reward.cooldown_minutes or cooldown_minutes
         time_since_last_award = current_ts - most_recent_award
-        if time_since_last_award < timedelta(minutes=self._reward.cooldown_minutes or cooldown_minutes):  # noqa
+
+        print('SPAM VARIABLES ')
+        print('most_recent_award > ', most_recent_award)
+        print('current_ts > ', current_ts)
+        print('effective_cooldown > ', effective_cooldown)
+        print('time_since_last_award > ', time_since_last_award)
+
+        if time_since_last_award < timedelta(minutes=effective_cooldown):
             self.logger.debug(
                 f"Cooldown active: Last award was {time_since_last_award.total_seconds():.0f}s ago "
             )
             return True  # Within cooldown period
 
-        relevant_rewards = rewards
+        relevant_rewards = [
+            {
+                **rw,
+                'awarded_at': _to_utc(rw['awarded_at'])
+            }
+            for rw in rewards
+        ]
 
-        timeframe_key = timeframe.strip().lower() if timeframe else None
+        effective_timeframe = timeframe or self._reward.timeframe
+        timeframe_key = effective_timeframe.strip().lower() if effective_timeframe else None
         # Let's check if the reward can be awarded multiple times based on Time Frame
         allowed_timeframes = {
             'daily': lambda timestamp: timestamp.date(),
@@ -632,12 +664,12 @@ ORDER BY awarded_at DESC;
         if timeframe_key in allowed_timeframes:
             timeframe_check = allowed_timeframes[timeframe_key]
             return any(
-                timeframe_check(env.timestamp) == timeframe_check(rw['awarded_at'])
+                timeframe_check(current_ts_local) == timeframe_check(_to_local(rw['awarded_at']))
                 for rw in relevant_rewards
             )
 
-        if (timeframe_delta := self._timeframe_to_timedelta(timeframe)):
-            threshold = env.timestamp - timeframe_delta
+        if (timeframe_delta := self._timeframe_to_timedelta(effective_timeframe)):
+            threshold = current_ts - timeframe_delta
             for rw in relevant_rewards:
                 awarded_at = rw['awarded_at']
                 if awarded_at >= threshold:
@@ -645,7 +677,7 @@ ORDER BY awarded_at DESC;
             return False
 
         return any(
-            env.timestamp.replace(second=0, microsecond=0) == rw['awarded_at'].replace(second=0, microsecond=0)  # noqa
+            current_ts.replace(second=0, microsecond=0) == rw['awarded_at'].replace(second=0, microsecond=0)  # noqa
             for rw in relevant_rewards
         )
 
@@ -740,6 +772,14 @@ ORDER BY awarded_at DESC;
                     a
                 )
             )
+            # Call awarded callbacks:
+            asyncio.create_task(
+                self._execute_awarded_callbacks(
+                    ctx,
+                    env,
+                    a
+                )
+            )
             return a, error
         except ValidationError as err:
             error = {
@@ -808,6 +848,42 @@ ORDER BY awarded_at DESC;
                     f"User {user_id} has unlocked collective {collective_id}."
                 )
 
+    async def _execute_awarded_callbacks(
+        self,
+        ctx: EvalContext,
+        env: Environment,
+        award: UserReward
+    ) -> None:
+        """Execute optional callbacks when a reward has been awarded."""
+        callbacks = getattr(self._reward, 'awarded_callbacks', None) or []
+        if not callbacks:
+            return
+        for callback_path in callbacks:
+            if not callback_path:
+                continue
+            try:
+                module_path, func_name = callback_path.rsplit('.', 1)
+                module = importlib.import_module(module_path)
+                callback = getattr(module, func_name)
+            except (ValueError, ImportError, AttributeError) as err:
+                self.logger.error(
+                    f"Unable to load awarded callback '{callback_path}': {err}"
+                )
+                continue
+
+            try:
+                if inspect.iscoroutinefunction(callback):
+                    await callback(ctx, env, award, self._reward)
+                else:
+                    callback(ctx, env, award, self._reward)
+                self.logger.info(
+                    f"Executed awarded callback: {callback_path}"
+                )
+            except Exception as err:  # noqa: BLE001
+                self.logger.error(
+                    f"Error executing awarded callback '{callback_path}': {err}"
+                )
+
     async def send_notification(
         self,
         ctx: EvalContext,
@@ -825,6 +901,31 @@ ORDER BY awarded_at DESC;
         reward_template = self._template_engine.get_template(
             "rewards/to_user.json"
         )
+        giver_name = (
+            a.giver_name
+            or ctx.session.get('display_name')
+            or ctx.session.get('name')
+            or ctx.user.display_name
+            or ctx.user.email
+            or 'Rewards Team'
+        )
+        giver = {
+            "name": giver_name,
+            "email": (
+                a.giver_email
+                or ctx.session.get('email')
+                or ctx.user.email
+            ),
+            "user_id": (
+                a.giver_user
+                or ctx.session.get('user_id')
+                or ctx.user.user_id
+            ),
+            "employee": (
+                a.giver_employee
+                or ctx.session.get('associate_id')
+            )
+        }
         message = await reward_template.render_async(
             ctx=ctx,
             env=env,
@@ -835,7 +936,9 @@ ORDER BY awarded_at DESC;
             reward_obj=reward,
             points=a.points,
             message=a.message,
-            giver_name=a.giver_name or ctx.session.get('display_name'),
+            giver_name=giver_name,
+            giver=giver,
+            giver_email=giver.get('email'),
             awarded_at=a.awarded_at.strftime('%m/%d/%Y %H:%M:%S')
         )
         # Send the Teams message
@@ -856,7 +959,9 @@ ORDER BY awarded_at DESC;
             "reward_obj": reward,
             "points": a.points,
             "message": a.message,
-            "giver_name": a.giver_name or ctx.session.get('display_name'),
+            "giver_name": giver_name,
+            "giver": giver,
+            "giver_email": giver.get('email'),
             "awarded_at": a.awarded_at.strftime('%m/%d/%Y %H:%M:%S')
         }
         await self.send_email_notification(

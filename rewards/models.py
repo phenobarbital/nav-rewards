@@ -206,6 +206,10 @@ class Reward(Model):
         required=False,
         default_factory=list,
     )
+    awarded_callbacks: List[str] = Field(
+        required=False,
+        default_factory=list,
+    )
 
     class Meta:
         name = "rewards"
@@ -632,12 +636,17 @@ class RewardView(Model):
         required=False, default_factory=list, multiple=True
     )
     timeframe: str = Field(required=False)
+    cooldown_minutes: Optional[int] = Field(default=1)
     is_enabled: bool = Field(required=False, default=True)
     completion_callbacks: List[str] = Field(
         required=False,
         default_factory=list,
     )
     step_callbacks: List[str] = Field(
+        required=False,
+        default_factory=list,
+    )
+    awarded_callbacks: List[str] = Field(
         required=False,
         default_factory=list,
     )

@@ -101,7 +101,13 @@
           "type": "Column",
           "items": [
             { "type": "TextBlock", "text": "Recognized by", "weight": "Bolder", "spacing": "Small" },
-            { "type": "TextBlock", "text": "{{ giver_name }}", "size": "Medium", "weight": "Bolder" }
+            {
+              "type": "TextBlock",
+              "text": "[{{ giver_name }}](https://teams.microsoft.com/l/chat/0/0?users={{ giver_email }})",
+              "size": "Medium",
+              "weight": "Bolder",
+              "wrap": true
+            }
           ],
           "width": "auto"
         },

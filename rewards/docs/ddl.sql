@@ -173,6 +173,7 @@ CREATE TABLE rewards.rewards (
     is_enabled bool DEFAULT true NOT NULL,
     completion_callbacks jsonb DEFAULT '[]'::jsonb NOT NULL,
     step_callbacks jsonb DEFAULT '[]'::jsonb NOT NULL,
+    awarded_callbacks jsonb DEFAULT '[]'::jsonb NOT NULL,
     CONSTRAINT chk_rewards_points_positive CHECK (points >= 0),
 	CONSTRAINT pk_rewards_rewards_pkey PRIMARY KEY (reward_id),
 	CONSTRAINT fk_auth_users_rewards_category FOREIGN KEY (reward_category) REFERENCES rewards.reward_categories(reward_category) ON DELETE RESTRICT ON UPDATE CASCADE DEFERRABLE INITIALLY DEFERRED,
@@ -221,7 +222,6 @@ CREATE TABLE rewards.users_rewards (
 	CONSTRAINT chk_no_self_assign CHECK ((giver_user <> receiver_user)),
 	CONSTRAINT pk_rewards_users_rewards_pkey PRIMARY KEY (award_id),
 	CONSTRAINT unq_rewards_user_reward_awardet_at UNIQUE (receiver_email, reward_id, awarded_at),
-	CONSTRAINT unq_rewards_user_reward_system UNIQUE (giver_email, receiver_email, reward_id),
 	CONSTRAINT fk_auth_users_rewards_giver_user FOREIGN KEY (giver_user) REFERENCES auth.users(user_id) ON DELETE RESTRICT ON UPDATE CASCADE DEFERRABLE INITIALLY DEFERRED,
 	CONSTRAINT fk_auth_users_rewards_receiver_user FOREIGN KEY (receiver_user) REFERENCES auth.users(user_id) ON DELETE RESTRICT ON UPDATE CASCADE DEFERRABLE INITIALLY DEFERRED
 );
@@ -262,6 +262,7 @@ AS SELECT r.reward_id,
     w.groups AS awardee,
     r.completion_callbacks,
     r.step_callbacks,
+    r.awarded_callbacks,
     r.effective_date
    FROM rewards.rewards r
      LEFT JOIN ( SELECT array_agg(g.group_name) AS groups,
