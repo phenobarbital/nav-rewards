@@ -13,7 +13,7 @@ dynamic = ["version"]
 description = "Engine for sending Kudos and Rewards to users, built on top of aiohttp + navigator-api."
 readme = "README.md"
 license = "MIT"
-requires-python = ">=3.9.16"
+requires-python = ">=3.10.0"
 authors = [{ name = "Jesus Lara Gimenez", email = "jesuslarag@gmail.com" }]
 keywords = ["asyncio", "rewards", "kudos", "notifications", "email", "teams", "telegram"]
 classifiers = [
@@ -22,7 +22,6 @@ classifiers = [
   "Intended Audience :: System Administrators",
   "Operating System :: OS Independent",
   "Programming Language :: Python :: 3 :: Only",
-  "Programming Language :: Python :: 3.9",
   "Programming Language :: Python :: 3.10",
   "Programming Language :: Python :: 3.11",
   "Programming Language :: Python :: 3.12",
@@ -43,8 +42,8 @@ dependencies = [
   "qworker>=1.13.1",
   "transitions==0.9.2",
   # MS Teams integration
-  "azure-teambots>=0.1.1",
-  "apscheduler==3.11.0"
+  # "azure-teambots>=0.1.1",
+  "apscheduler>=3.11.0"
 ]
 
 [project.optional-dependencies]
@@ -54,7 +53,7 @@ events = [
 all = [
   "transitions==0.9.2",
   "aiormq==6.9.2",
-  "azure-teambots>=0.1.1",
+  # "azure-teambots>=0.1.1",
   "apscheduler==3.11.0"
 ]
 
