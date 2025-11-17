@@ -167,6 +167,7 @@ class Reward(Model):
         required=False, default_factory=list, multiple=True
     )
     effective_date: datetime = Field(required=False, default=datetime.now)
+    timeframe: str = Field(required=False)
     cooldown_minutes: Optional[int] = Field(default=1)
     is_enabled: bool = Field(required=False, default=True)
     inserted_at: datetime = Field(

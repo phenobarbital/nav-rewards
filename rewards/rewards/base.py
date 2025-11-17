@@ -589,8 +589,6 @@ AND deleted_at IS NULL
             query += " AND giver_user = $3::int"
             params.append(giver_user)
         query += " ORDER BY awarded_at DESC;"
-
-        print('QUERY > ', query)
         rewards = await conn.fetch_all(
             query,
             *params
@@ -599,8 +597,6 @@ AND deleted_at IS NULL
         if not rewards:
             # No rewards were awarded for this user.
             return False
-
-        print('IS MULTIPLE > ', self.multiple, type(self.multiple))
 
         # check if this reward can be applied multiple times:
         if not self.multiple:
@@ -623,13 +619,6 @@ AND deleted_at IS NULL
 
         effective_cooldown = self._reward.cooldown_minutes or cooldown_minutes
         time_since_last_award = current_ts - most_recent_award
-
-        print('SPAM VARIABLES ')
-        print('most_recent_award > ', most_recent_award)
-        print('current_ts > ', current_ts)
-        print('effective_cooldown > ', effective_cooldown)
-        print('time_since_last_award > ', time_since_last_award)
-
         if time_since_last_award < timedelta(minutes=effective_cooldown):
             self.logger.debug(
                 f"Cooldown active: Last award was {time_since_last_award.total_seconds():.0f}s ago "
