@@ -1,13 +1,14 @@
-from typing import Optional, Any, Union
+from typing import List, Optional, Any, Union
 import importlib
 import inspect
 import asyncio
+import json
 from datetime import datetime, timedelta, timezone
 from zoneinfo import ZoneInfo
 import contextlib
 from jinja2 import TemplateError
-from datamodel.parsers.json import json_decoder
-from datamodel.exceptions import ValidationError, ParserError
+from datamodel.parsers.json import json_decoder  # pylint: disable=E0611
+from datamodel.exceptions import ValidationError, ParserError  # pylint: disable=E0611
 from asyncdb.exceptions import DriverError
 from navconfig.logging import logging
 from navconfig import config
@@ -38,6 +39,10 @@ except Exception:
     LOCAL_TIMEZONE = timezone.utc
 
 class RewardObject:
+    """RewardObject.
+
+    Base Class for Rewards.
+    """
     def __init__(
         self,
         reward: RewardView,
@@ -64,6 +69,7 @@ class RewardObject:
         self._template_engine = None
 
     def is_enabled(self) -> bool:
+        """This reward is Enabled."""
         return self._reward.is_enabled
 
     @property
@@ -900,6 +906,9 @@ AND deleted_at IS NULL
         reward_template = self._template_engine.get_template(
             "rewards/to_user.json"
         )
+        # Sanitize user data before templating
+        sanitized_user = self._sanitize_user(ctx.user)
+
         giver_name = (
             a.giver_name
             or ctx.session.get('display_name')
@@ -925,39 +934,48 @@ AND deleted_at IS NULL
                 or ctx.session.get('associate_id')
             )
         }
+        safe_message = self._escape_json_text(a.message)
         message = await reward_template.render_async(
             ctx=ctx,
             env=env,
-            user=ctx.user,
+            user=sanitized_user,
             reward=reward.reward,
             reward_icon=reward.icon,
             reward_emoji=reward.emoji,
             reward_obj=reward,
             points=a.points,
-            message=a.message,
+            message=safe_message,
             giver_name=giver_name,
             giver=giver,
             giver_email=giver.get('email'),
             awarded_at=a.awarded_at.strftime('%m/%d/%Y %H:%M:%S')
         )
         # Send the Teams message
-        recipient = self.create_actor(a)
+        recipient = self.create_actor(
+            name=a.receiver_name or a.receiver_email,
+            email=a.receiver_email
+        )
+        sender = self.create_actor(
+            name=giver_name,
+            email=giver.get('email')
+        )
+        recipients = [sender, recipient]
         await self.send_teams_message(
-            to=recipient,
+            to=recipients,
             message=message
         )
         # Send an email notification
         email_body = await self._reward_message(
-            ctx, env, ctx.user, message=reward.message
+            ctx, env, sanitized_user, message=reward.message
         )
         args = {
             "reward": reward.reward,
             "reward_icon": reward.icon,
             "reward_emoji": reward.emoji,
-            "user": ctx.user,
+            "user": sanitized_user,
             "reward_obj": reward,
             "points": a.points,
-            "message": a.message,
+            "message": safe_message,
             "giver_name": giver_name,
             "giver": giver,
             "giver_email": giver.get('email'),
@@ -974,16 +992,17 @@ AND deleted_at IS NULL
             f"Notification sent to {ctx.user.email} for reward {a.reward}."
         )
 
-    def create_actor(self, user: UserReward) -> Actor:
+    def create_actor(self, name: str, email: str) -> Actor:
         """Create an Actor from UserReward."""
         return Actor(
-            name=user.receiver_name or user.receiver_email,
+            name=name,
             account={
-                "address": user.receiver_email
+                "address": email
             }
         )
 
-    async def send_teams_message(self, to: Actor, message: str):
+    async def send_teams_message(self, to: List[Actor], message: str):
+        """Send a message to a user via MS Teams."""
         try:
             tm = Teams(
                 as_user=True,
@@ -993,11 +1012,13 @@ AND deleted_at IS NULL
                 password=REWARDS_PASSWORD
             )
             async with tm as conn:
-                result = await conn.send(
+                result = await conn.send_to_group(
                     recipient=to,
                     message=message
                 )
-            print('Teams message sent successfully:')
+                self.logger.debug(
+                    f"Teams Notification sent to: {to}"
+                )
         except Exception as e:
             print(f"Error sending Teams message: {e}")
             return
@@ -1033,3 +1054,28 @@ AND deleted_at IS NULL
         except Exception as e:
             print(f"Error sending email notification: {e}")
             return
+
+    @staticmethod
+    def _sanitize_user(user: Any) -> Any:
+        """Remove sensitive attributes from user data before templating."""
+        if user is None:
+            return None
+        sensitive_fields = {
+            "password",
+            "salted_password",
+            "birthday",
+            "birthdate",
+        }
+        for field in sensitive_fields:
+            with contextlib.suppress(Exception):
+                if hasattr(user, field):
+                    setattr(user, field, None)
+        return user
+
+    @staticmethod
+    def _escape_json_text(value: Any) -> str:
+        """Escape text so it can be safely embedded inside JSON strings."""
+        escaped = json.dumps(value or "")
+        if len(escaped) >= 2 and escaped[0] == '"' and escaped[-1] == '"':
+            return escaped[1:-1]
+        return escaped

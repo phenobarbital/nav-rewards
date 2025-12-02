@@ -1,8 +1,6 @@
 from typing import Optional, Dict, Any, List
 from datetime import datetime, timedelta
-import asyncio
-from datamodel.exceptions import ValidationError
-from asyncdb.exceptions import DriverError
+from navigator_auth.models import User
 from ..base import RewardObject
 from ..workflow import WorkflowReward
 from ...models import RewardView, UserReward
@@ -277,7 +275,6 @@ class NominationAward(WorkflowReward):
                     raise ValueError("Maximum nominations per user exceeded")
 
                 # Get nominee information
-                from navigator_auth.models import User
                 User.Meta.connection = conn
                 nominee = await User.get(user_id=nominee_user_id)
 
@@ -613,7 +610,6 @@ class NominationAward(WorkflowReward):
         """Award the reward to the winner."""
         try:
             # Create user context for winner
-            from navigator_auth.models import User
             User.Meta.connection = conn
             winner_user = await User.get(user_id=winner.nominee_user_id)
 
@@ -959,7 +955,6 @@ class NominationAward(WorkflowReward):
     ):
         """Add pre-defined candidates to the campaign."""
         try:
-            from navigator_auth.models import User
             User.Meta.connection = conn
             Nomination.Meta.connection = conn
 
@@ -1056,7 +1051,6 @@ class NominationAward(WorkflowReward):
                     )
 
                 # Get candidate information
-                from navigator_auth.models import User
                 User.Meta.connection = conn
                 candidate_user = await User.get(
                     user_id=candidate_user_id
