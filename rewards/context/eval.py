@@ -4,6 +4,7 @@ from aiohttp import web
 from navconfig.logging import logging
 from navigator_auth.conf import AUTH_SESSION_OBJECT
 from datamodel import BaseModel
+from pydantic import BaseModel as pyModel
 from ..env import Environment
 from ..registry import AchievementRegistry
 
@@ -42,9 +43,16 @@ class EvalContext(dict, MutableMapping):
         self._columns = list(self.store.keys())
         if user:
             if isinstance(user, BaseModel):
-                self.store['user_keys'] = user.get_fields()
+                self.store['user_keys'] = list(user.get_fields())
+            elif isinstance(user, pyModel):
+                if hasattr(user, "model_dump"):
+                    self.store['user_keys'] = list(user.model_dump().keys())
+                else:
+                    self.store['user_keys'] = list(user.dict().keys())
+            elif isinstance(user, dict):
+                self.store['user_keys'] = list(user.keys())
             else:
-                self.store['user_keys'] = user.keys()
+                self.store['user_keys'] = {}
         # Session Context:
         if AUTH_SESSION_OBJECT in self.store['session']:
             self.store['userinfo'] = self.store['session'][AUTH_SESSION_OBJECT]

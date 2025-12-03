@@ -152,7 +152,6 @@ class RewardsEngine:
             self.storages.append(storage)
         elif isinstance(storage, str):
             storage = self.get_storage(storage, **kwargs)
-            print('storage >', storage)
             self.storages.append(storage)
 
     def get_storage(self, name: str, **kwargs):

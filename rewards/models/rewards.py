@@ -1,16 +1,18 @@
+"""
+Reward related Models.
+"""
 from typing import Optional, List
 from enum import Enum
 from uuid import UUID, uuid4
 from datetime import datetime
 from datamodel import BaseModel, Field
 from asyncdb.models import Model
-from navigator_auth.models import Group
+from navigator_auth.models import Group, User as AuthUser
 from ..conf import (
     REWARDS_SCHEMA,
     REWARDS_VIEW,
     USER_REWARDS,
 )
-from .user import User
 
 
 class RewardType(Model):
@@ -616,7 +618,7 @@ class BadgeAssign(BaseModel):
     reward_type: str = Field(
         required=False,
     )
-    user_id: User = Field(
+    user_id: AuthUser = Field(
         required=True,
         fk='user_id|display_name',
         api='ad_people',

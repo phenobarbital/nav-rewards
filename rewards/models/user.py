@@ -149,12 +149,12 @@ async def get_user(pool: Callable, user_id: int) -> Optional[User]:
             user = await AuthUser.get(user_id=user_id)
             if user:
                 return User(
-                    **user.as_dict()
+                    **user.to_dict()
                 )
     # Handle InitDriver case:
     AuthUser.Meta.connection = pool
     user = await AuthUser.get(user_id=user_id)
-    return User(**user.as_dict()) if user else None
+    return User(**user.to_dict()) if user else None
 
 async def get_user_by_username(pool: Callable, username: str) -> Optional[User]:
     """Fetch user by username."""
@@ -163,7 +163,7 @@ async def get_user_by_username(pool: Callable, username: str) -> Optional[User]:
         user = await AuthUser.get(username=username)
         if user:
             return User(
-                **user.as_dict()
+                **user.to_dict()
             )
     return None
 
@@ -173,7 +173,7 @@ async def all_users(pool: Callable) -> list[User]:
     async with await pool.acquire() as conn:
         AuthUser.Meta.connection = conn
         users = await AuthUser.all()
-        users_list.extend(User(**user.as_dict()) for user in users)
+        users_list.extend(User(**user.to_dict()) for user in users)
     return users_list
 
 async def filter_users(pool: Callable, **filters) -> list[User]:
@@ -186,7 +186,7 @@ async def filter_users(pool: Callable, **filters) -> list[User]:
     async with await pool.acquire() as conn:
         AuthUser.Meta.connection = conn
         users = await AuthUser.filter(**filters)
-        users_list.extend(User(**user.as_dict()) for user in users)
+        users_list.extend(User(**user.to_dict()) for user in users)
     return users_list
 
 # Attach methods to User model
