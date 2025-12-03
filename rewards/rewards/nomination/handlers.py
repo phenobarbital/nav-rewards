@@ -1,10 +1,7 @@
-from typing import Any
+from datetime import datetime
 from aiohttp import web
-from datetime import datetime, timedelta
 from navigator_session import get_session
-from navigator_auth.libs.json import json_encoder
-from datamodel.exceptions import ValidationError
-from asyncdb.exceptions import DriverError
+from datamodel.exceptions import ValidationError  # pylint: disable=E0611
 from navigator.views import BaseHandler
 from ...context import EvalContext
 from ...env import Environment

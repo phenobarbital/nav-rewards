@@ -1,9 +1,11 @@
 """User model for Rewards application."""
-from typing import Optional
+from typing import Optional, Callable
 from datetime import datetime, timedelta, date
 from enum import Enum
 from uuid import UUID, uuid4
 from pydantic import BaseModel, Field, field_validator
+from navigator_auth.models import User as AuthUser
+from asyncdb.drivers.base import BasePool, InitDriver
 
 
 class UserType(Enum):
@@ -137,3 +139,58 @@ class User(BaseModel):
             months += 12
 
         return years, months, days
+
+
+async def get_user(pool: Callable, user_id: int) -> Optional[User]:
+    """Fetch user by user_id."""
+    if isinstance(pool, BasePool):
+        async with await pool.acquire() as conn:
+            AuthUser.Meta.connection = conn
+            user = await AuthUser.get(user_id=user_id)
+            if user:
+                return User(
+                    **user.as_dict()
+                )
+    # Handle InitDriver case:
+    AuthUser.Meta.connection = pool
+    user = await AuthUser.get(user_id=user_id)
+    return User(**user.as_dict()) if user else None
+
+async def get_user_by_username(pool: Callable, username: str) -> Optional[User]:
+    """Fetch user by username."""
+    async with await pool.acquire() as conn:
+        AuthUser.Meta.connection = conn
+        user = await AuthUser.get(username=username)
+        if user:
+            return User(
+                **user.as_dict()
+            )
+    return None
+
+async def all_users(pool: Callable) -> list[User]:
+    """Fetch all users."""
+    users_list = []
+    async with await pool.acquire() as conn:
+        AuthUser.Meta.connection = conn
+        users = await AuthUser.all()
+        users_list.extend(User(**user.as_dict()) for user in users)
+    return users_list
+
+async def filter_users(pool: Callable, **filters) -> list[User]:
+    """Fetch users by filters."""
+    users_list = []
+    if not filters:
+        filters = {
+            "is_active": True
+        }
+    async with await pool.acquire() as conn:
+        AuthUser.Meta.connection = conn
+        users = await AuthUser.filter(**filters)
+        users_list.extend(User(**user.as_dict()) for user in users)
+    return users_list
+
+# Attach methods to User model
+User.get_user = get_user
+User.get_user_by_username = get_user_by_username
+User.all_users = all_users
+User.filter_users = filter_users

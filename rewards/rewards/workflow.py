@@ -7,14 +7,15 @@ import inspect
 import aiormq
 from transitions import Machine, State
 from navconfig.logging import logging
-from navigator_auth.libs.json import json_encoder, json_decoder
-from navigator_auth.models import User
+from datamodel.parsers.json import json_encoder, json_decoder  # pylint: disable=E0611,E0401
 from .event import EventReward
 from ..env import Environment
 from ..context import EvalContext, achievement_registry
 from ..rules.achievement import AchievementRule
 from ..models import (
-    RewardView
+    RewardView,
+    User,
+    filter_users
 )
 
 
@@ -857,10 +858,7 @@ class WorkflowReward(EventReward):
     ) -> Iterable:
         """Evaluate event and return potential users."""
         try:
-            async with await env.connection.acquire() as conn:
-                User.Meta.connection = conn
-                users = await User.filter(**data)
-
+            users = filter_users(env.connection, **data)
             result = []
             for user in users:
                 ctx, _ = self.get_user_context(user)

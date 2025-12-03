@@ -1,9 +1,15 @@
+"""Nomination-based Reward Object."""
 from typing import Optional, Dict, Any, List
 from datetime import datetime, timedelta
-from navigator_auth.models import User
 from ..base import RewardObject
 from ..workflow import WorkflowReward
-from ...models import RewardView, UserReward
+from ...models import (
+    RewardView,
+    UserReward,
+    User,
+    get_user,
+    filter_users,
+)
 from ...context import EvalContext
 from ...env import Environment
 from .models import (
@@ -246,6 +252,8 @@ class NominationAward(WorkflowReward):
     ) -> Optional[Nomination]:
         """Submit a nomination for a campaign."""
         try:
+            # Get nominee information
+            nominee = await get_user(env.connection, nominee_user_id)
             async with await env.connection.acquire() as conn:
                 # Validate campaign and phase
                 NominationCampaign.Meta.connection = conn
@@ -273,10 +281,6 @@ class NominationAward(WorkflowReward):
                 )
                 if existing_nominations >= campaign.max_nominations_per_user:
                     raise ValueError("Maximum nominations per user exceeded")
-
-                # Get nominee information
-                User.Meta.connection = conn
-                nominee = await User.get(user_id=nominee_user_id)
 
                 # Create nomination
                 Nomination.Meta.connection = conn
@@ -610,9 +614,7 @@ class NominationAward(WorkflowReward):
         """Award the reward to the winner."""
         try:
             # Create user context for winner
-            User.Meta.connection = conn
-            winner_user = await User.get(user_id=winner.nominee_user_id)
-
+            winner_user = await get_user(env.connection, winner.nominee_user_id)
             # Create evaluation context for winner
             ctx = self._get_context_user(winner_user)
 
@@ -955,12 +957,12 @@ class NominationAward(WorkflowReward):
     ):
         """Add pre-defined candidates to the campaign."""
         try:
-            User.Meta.connection = conn
             Nomination.Meta.connection = conn
 
             for candidate_data in candidates:
                 # Get candidate user information
-                candidate_user = await User.get(
+                candidate_user = await get_user(
+                    conn,
                     user_id=candidate_data['user_id']
                 )
 
@@ -1051,8 +1053,8 @@ class NominationAward(WorkflowReward):
                     )
 
                 # Get candidate information
-                User.Meta.connection = conn
-                candidate_user = await User.get(
+                candidate_user = await get_user(
+                    pool=conn,
                     user_id=candidate_user_id
                 )
 

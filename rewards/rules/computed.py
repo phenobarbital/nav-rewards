@@ -2,10 +2,10 @@ from abc import abstractmethod
 from collections.abc import Iterable
 from typing import Any, Optional
 import pandas as pd
-from navigator_auth.models import User
 from .abstract import AbstractRule
 from ..env import Environment
 from ..context import EvalContext
+from ..models import User, get_user
 
 
 # pylint: disable=too-many-instance-attributes
@@ -150,7 +150,6 @@ class ComputedRule(AbstractRule):
         _candidates = await self._get_candidates(env, dataset)
         potential_users = []
         async with await env.connection.acquire() as conn:
-            User.Meta.connection = conn
             for position, (idx, u) in enumerate(_candidates.iterrows()):
                 try:
                     key = 'user_id'
@@ -162,7 +161,7 @@ class ComputedRule(AbstractRule):
                     args = {
                         key: candidate[key]
                     }
-                    user = await User.get(**args)
+                    user = await get_user(pool=conn, **args)
                     self.logger.notice(
                         f'Fetching User: {user.email}'
                     )

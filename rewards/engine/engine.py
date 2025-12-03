@@ -15,17 +15,22 @@ from jinja2 import (
 )
 from navconfig.logging import logging
 from datamodel import BaseModel
-from datamodel.exceptions import ValidationError
+from datamodel.exceptions import ValidationError  # pylint: disable=E0611
+from datamodel.parsers.json import json_encoder, json_decoder  # pylint: disable=E0611
 from asyncdb import AsyncPool
 ## APscheduler
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.executors.asyncio import AsyncIOExecutor
 ## Navigator
 from navigator_session import get_session
-from navigator_auth.libs.json import json_encoder, json_decoder
-from navigator.applications.base import BaseApplication
-from navigator.types import WebApp
-from ..models import User
+from navigator.applications.base import BaseApplication  # pylint: disable=E0611
+from navigator.types import WebApp  # pylint: disable=E0611
+from ..models import (
+    User,
+    all_users,
+    filter_users,
+    get_user
+)
 from ..conf import (
     REWARDS_CLIENT_ID,
     REWARDS_CLIENT_SECRET,
@@ -54,9 +59,6 @@ from ..handlers import (
     RewardTypeHandler,
     RewardHandler,
     RewardViewHandler
-)
-from ..models import (
-    UserReward
 )
 # Award System Handlers:
 from ..rewards.nomination.handlers import (
@@ -670,7 +672,7 @@ class RewardsEngine:
                 dsn=default_dsn,
                 **kwargs
             )
-            await self._pool.connect()
+            await self._pool.connect()  # pylint: disable=E1101
             self.logger.notice('Rewards: Connected.')
         except Exception as err:
             self.logger.error(str(err))
@@ -859,7 +861,7 @@ class RewardsEngine:
     async def reward_shutdown(self, app: web.Application):
         """reward_shutdown.
         """
-        await self._pool.wait_close(timeout=5)
+        await self._pool.wait_close(timeout=5)  # pylint: disable=E1101
         try:
             for storage in self.storages:
                 await storage.close()
@@ -896,15 +898,11 @@ class RewardsEngine:
         if not _filtered:
             self.logger.info("No rewards to evaluate")
             return
-
-        users = []
-        async with await self.connection.acquire() as conn:
-            User.Meta.connection = conn
-            try:
-                users = await User.all()
-            except Exception as err:
-                self.logger.error(f"Error fetching users: {err}")
-                return
+        try:
+            users = await all_users(self.connection)
+        except Exception as err:
+            self.logger.error(f"Error fetching users: {err}")
+            return
 
         if not users:
             self.logger.info("No users found for reward evaluation")
@@ -1086,7 +1084,7 @@ class RewardsEngine:
                     )
                     return False
 
-                async with await self.connection.acquire() as conn:
+                async with await self.connection.acquire() as conn:  # pylint: disable=E1101
                     # Evaluate Reward for this User:
                     if not reward.fits(ctx=ctx, env=env):
                         # Reward does not fit the user
@@ -1140,14 +1138,12 @@ class RewardsEngine:
     ) -> BaseModel:
         """check_user.
         """
-        async with await self.connection.acquire() as conn:
-            User.Meta.connection = conn
-            try:
-                return await User.get(user_id=data.user_id)
-            except Exception as err:
-                raise RuntimeError(
-                    f"Error on Fetch User: {err}"
-                ) from err
+        try:
+            return await get_user(self.connection, user_id=data.user_id)
+        except Exception as err:
+            raise RuntimeError(
+                f"Error on Fetch User: {err}"
+            ) from err
 
     async def _evaluate_reward(
         self,
@@ -1157,7 +1153,7 @@ class RewardsEngine:
     ):
         try:
             async with self._user_semaphore:
-                async with await self.connection.acquire() as conn:
+                async with await self.connection.acquire() as conn:  # pylint: disable=E1101
                     # Evaluate Reward for this User:
                     session_user_id = None
                     try:
@@ -1203,12 +1199,10 @@ class RewardsEngine:
         session: Any,
         user: BaseModel
     ):
-        """evaluate.
+        """Evaluate Rewards for a specific User.
         """
         with contextlib.suppress(Exception):
-            async with await self.connection.acquire() as conn:
-                User.Meta.connection = conn
-                user = await User.get(user_id=user.user_id)
+            user = await get_user(self.connection, user_id=user.user_id)
         env = Environment()
         ctx = EvalContext(
             request=request,
@@ -1254,18 +1248,15 @@ class RewardsEngine:
             return
 
         try:
-            # Get all active users
             users = []
-            async with await self.connection.acquire() as conn:
-                User.Meta.connection = conn
-                try:
-                    # You might want to filter for active users only
-                    users = await User.filter(is_active=True)
-                except Exception as err:
-                    self.logger.error(
-                        f"Error fetching users for workflow evaluation: {err}"
-                    )
-                    return
+            # Get all active users
+            try:
+                users = await filter_users(self.connection, is_active=True)
+            except Exception as err:
+                self.logger.error(
+                    f"Error fetching users for workflow evaluation: {err}"
+                )
+                return
 
             if not users:
                 self.logger.info(
@@ -1397,7 +1388,7 @@ class RewardsEngine:
             if completed := await reward.evaluate(ctx=ctx, env=env):
                 # Workflow was completed - award the reward
                 try:
-                    async with await self.connection.acquire() as conn:
+                    async with await self.connection.acquire() as conn:  # pylint: disable=E1101
                         reward_awarded, error = await reward.apply(
                             ctx=ctx,
                             env=env,
@@ -1459,10 +1450,7 @@ class RewardsEngine:
                 return
 
             # Get users and evaluate
-            async with await self.connection.acquire() as conn:
-                User.Meta.connection = conn
-                users = await User.filter(is_active=True)
-
+            users = await filter_users(self.connection, is_active=True)
             env = Environment(
                 connection=self.connection,
                 cache=self.get_cache()
@@ -1578,7 +1566,7 @@ class RewardsEngine:
                 connection=self.connection,
                 cache=self.get_cache()
             )
-            async with await self.connection.acquire() as conn:
+            async with await self.connection.acquire() as conn:  # pylint: disable=E1101
                 NominationCampaign.Meta.connection = conn
 
                 # Check campaigns that should transition to nomination phase

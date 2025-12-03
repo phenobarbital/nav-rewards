@@ -1,18 +1,20 @@
 from collections.abc import Iterable
 from typing import Optional, Any
+import contextlib
 import aiormq
 from datamodel import BaseModel, Field
-from navigator_auth.libs.json import json_encoder, json_decoder
-from navigator_auth.models import User
+from datamodel.parsers.json import json_encoder, json_decoder  # pylint: disable=E0611
 from .event import EventReward
 from ..models import (
     RewardView,
 )
 from ..context import EvalContext
 from ..env import Environment
+from ..models.user import User, get_user
 
 
 class ChallengeStep(BaseModel):
+    """Challenge Step."""
     step: str
     args: dict[str, Any] = Field(default_factory=dict)
     completed: bool = Field(default=False)
@@ -57,15 +59,14 @@ class ChallengeReward(EventReward):
         # Use "data" to obtain the User:
         user_id = data.get('user_id', None)
         result = []
-        async with await env.connection.acquire() as conn:
-            User.Meta.connection = conn
-            user = await User.get(user_id=user_id)
-            ctx, _ = self.get_user_context(user)
-            ctx.event = data
-            result.append(ctx)
+        user = await get_user(env.connection, user_id=user_id)
+        ctx, _ = self.get_user_context(user)
+        ctx.event = data
+        result.append(ctx)
         return result
 
     def is_completed(self, userdata) -> bool:
+        """Check if all steps are completed."""
         return all(
             challenge_data.completed for challenge_data in userdata['steps']
         )
@@ -74,8 +75,7 @@ class ChallengeReward(EventReward):
         """
         Evaluates the Reward against the criteria.
 
-        :param ctx: The evaluation context, containing user and session
-           information.
+        :param ctx: The evaluation context, containing user and session information.
         :param environ: The environment information, such as the current time.
         :return: True if this Reward can be applied to User.
         """
@@ -124,6 +124,7 @@ class ChallengeReward(EventReward):
         # Load user's workflow state from the database
         # TODO: Using Database or Redis
         key = f"{ctx.user.username}:{ctx.user.user_id}"
+        reward = {}
         if await env.cache.exists(key):
             # User Exists:
             user_data = await env.cache.hget(key, 'rewards')
@@ -167,7 +168,7 @@ class ChallengeReward(EventReward):
         return rewards[f"{self._reward.reward_id}"]
 
     async def check_completion(self, user_data):
-        # Implement logic to check criteria against user_data
+        # TODO: Implement logic to check criteria against user_data
         # ...
         return True  # If the challenge has been completed
 
@@ -177,6 +178,7 @@ class ChallengeReward(EventReward):
         env: Environment,
         userdata: dict
     ):
+        """Progress the challenge for the user."""
         # Saving the state to the database (or cache)
         userdata['progress'] += 1
         key = f"{ctx.user.username}:{ctx.user.user_id}"
@@ -200,10 +202,8 @@ class ChallengeReward(EventReward):
         rewards = json_decoder(
             await env.cache.hget(key, 'rewards')
         )
-        try:
+        with contextlib.suppress(KeyError):
             del rewards[f"{self._reward.reward_id}"]
-        except KeyError:
-            pass
         # Set the Rewards Tree to the cache
         await env.cache.hset(
             key,
