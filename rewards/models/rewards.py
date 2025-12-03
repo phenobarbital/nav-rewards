@@ -2,60 +2,15 @@ from typing import Optional, List
 from enum import Enum
 from uuid import UUID, uuid4
 from datetime import datetime
-from jinja2 import Template
 from datamodel import BaseModel, Field
 from asyncdb.models import Model
-from navigator_auth.models import User, Group
-from .conf import (
-    PEOPLE_LIST,
-    PEOPLE_SCHEMA,
+from navigator_auth.models import Group
+from ..conf import (
     REWARDS_SCHEMA,
     REWARDS_VIEW,
-    USER_REWARDS
-
+    USER_REWARDS,
 )
-
-__all__ = (
-    'User',
-    'Group',
-)
-
-class ADPeople(Model):
-    """Active Directory Users."""
-    people_id: UUID = Field(
-        required=False,
-        primary_key=True,
-        db_default="auto",
-        repr=False
-    )
-    user_id: int = Field(required=True)
-    userid: UUID = Field(required=False)
-    username: str = Field(required=False)
-    display_name: str = Field(required=False)
-    given_name: str = Field(required=False)
-    last_name: str = Field(required=False)
-    phones: Optional[list] = Field(required=False)
-    mobile: str = Field(required=False)
-    job_title: str = Field(required=False)
-    email: str = Field(required=False)
-    alt_email: str = Field(required=False)
-    office_location: str = Field(required=False)
-    preferred_language: str = Field(required=False)
-    associate_id: str = Field(required=False)
-    associate_oid: str = Field(required=False)
-    job_code_title: str = Field(required=False)
-    position_id: str = Field(required=False)
-    reports_to: Optional[int] = Field(required=False)
-    created_at: datetime = Field(
-        required=False,
-        default=datetime.now(),
-        repr=False
-    )
-
-    class Meta:
-        name = PEOPLE_LIST
-        schema = PEOPLE_SCHEMA
-        strict = True
+from .user import User
 
 
 class RewardType(Model):
@@ -245,6 +200,7 @@ class RewardRule(Model):
 
 
 class PermissionType(Enum):
+    """Types of Permissions for Rewards."""
     ASSIGNER = (0, "Assigner")
     AWARDEE = (1, "Awardee")
     OBSERVER = (3, "Observer")
@@ -261,6 +217,7 @@ class PermissionType(Enum):
         return self._value_
 
 class RewardPermission(Model):
+    """Permissions for Rewards."""
     permission_id: int = Field(
         primary_key=True, required=False, db_default="auto", repr=False
     )
@@ -278,34 +235,6 @@ class RewardPermission(Model):
         name = "reward_permissions"
         schema = REWARDS_SCHEMA
         endpoint: str = 'rewards/api/v1/reward_permissions'
-        strict = True
-
-class Employee(BaseModel):
-    associate_id: str = Field(required=True)
-    position_id: str = Field(required=True)
-    file_number: str = Field(required=True)
-    operator_name: str = Field(required=True)
-    first_name: str = Field(required=False)
-    last_name: str = Field(required=False)
-    display_name: str = Field(required=False)
-    corporate_email: str = Field(required=True)
-    job_code: str = Field(required=False)
-    job_code_title: str = Field(required=False)
-    region_code: str = Field(required=False)
-    department: str = Field(required=False)
-    department_code: str = Field(required=False)
-    location_code: str = Field(required=False)
-    work_location: str = Field(required=False)
-    reports_to_associate_oid: str = Field(required=False)
-    reports_to_associate_id: str = Field(required=False)
-    reports_to_position_id: str = Field(required=False)
-
-    def email(self):
-        return self.corporate_email
-
-    class Meta:
-        name = 'vw_active_employees'
-        schema = PEOPLE_SCHEMA
         strict = True
 
 
@@ -407,6 +336,7 @@ class RewardLike(Model):
 
 
 class RewardComment(Model):
+    """Comments on Rewards."""
     comment_id: int = Field(
         primary_key=True, required=False, db_default="auto", repr=False
     )
@@ -436,6 +366,7 @@ class RewardComment(Model):
         strict = True
 
 class RewardCommentReport(Model):
+    """Reports on Reward Comments."""
     comment_id: RewardComment = Field(
         required=True,
         fk='comment_id|comment_id',
@@ -461,6 +392,7 @@ class RewardCommentReport(Model):
         strict = True
 
 class RewardPoint(Model):
+    """User Reward Points."""
     point_id: int = Field(
         primary_key=True, required=False, db_default="auto", repr=False
     )
@@ -485,6 +417,7 @@ class RewardPoint(Model):
 
 
 class Collective(Model):
+    """Collectives of Rewards."""
     collective_id: int = Field(
         primary_key=True, required=False, db_default="auto", repr=False
     )
@@ -504,6 +437,7 @@ class Collective(Model):
         strict = True
 
 class CollectiveReward(Model):
+    """Collective Rewards."""
     collective_id: Collective = Field(
         required=True,
         fk='collective_id|collective_name',
@@ -527,6 +461,7 @@ class CollectiveReward(Model):
         strict = True
 
 class CollectiveUnlocked(Model):
+    """Collective Unlocked by User."""
     collective_id: Collective = Field(
         required=True,
         fk='collective_id|collective_name',
@@ -681,7 +616,7 @@ class BadgeAssign(BaseModel):
     reward_type: str = Field(
         required=False,
     )
-    user_id: ADPeople = Field(
+    user_id: User = Field(
         required=True,
         fk='user_id|display_name',
         api='ad_people',
