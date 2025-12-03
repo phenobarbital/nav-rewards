@@ -65,6 +65,8 @@ REWARDS_USER = config.get('REWARDS_USER')
 REWARDS_PASSWORD = config.get('REWARDS_PASSWORD')
 REWARDS_TENANT_ID = config.get('REWARDS_TENANT_ID')
 
+# Email Configuration:
+
 #### Microsoft Teams Bot
 BOT_REWARDS_ID = config.get("BOT_REWARDS_ID")
 BOT_REWARDS_SECRET = config.get("BOT_REWARDS_SECRET")

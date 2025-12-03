@@ -1037,7 +1037,7 @@ AND deleted_at IS NULL
             "aws_secret_access_key": config.get('AWS_SECRET_ACCESS_KEY'),
             "aws_region_name": config.get('AWS_REGION_NAME'),
             "sender_email": config.get(
-                'AWS_SENDER_EMAIL', fallback="rewards@trocglobal.com"
+                'AWS_SENDER_EMAIL_REWARDS'
             )
         }
         try:
