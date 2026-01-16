@@ -19,6 +19,10 @@ class Birthday(ComputedRule):
         self.attributes = kwargs
         # Configurable column name for the birthday field (default: 'birthday')
         self.column = kwargs.get('column', 'birthday')
+        # Configurable table/view name (default: 'auth.vw_users')
+        self.table = kwargs.get('table', 'auth.vw_users')
+        # Configurable employee ID column name (default: 'associate_id')
+        self.employee_id = kwargs.get('employee_id', 'associate_id')
 
     async def _get_candidates(
         self,
@@ -39,8 +43,8 @@ class Birthday(ComputedRule):
             # Query users where birthday (string YYYY-MM-DD) matches today's month/day
             # birthday column is stored as string like '1964-10-03'
             query = f"""
-                SELECT u.user_id, u.associate_id, u.email, u.display_name, u.{self.column} as birthday
-                FROM auth.vw_users u
+                SELECT u.user_id, u.{self.employee_id} as associate_id, u.email, u.display_name, u.{self.column} as birthday
+                FROM {self.table} u
                 WHERE u.is_active = true
                 AND u.{self.column} IS NOT NULL
                 AND u.{self.column} != ''

@@ -76,6 +76,10 @@ class EmploymentAnniversary(ComputedRule):
         # Starting year for anniversary (default: 1 year)
         # This finds users who have been employed for exactly N years as of today
         self.starting_year = kwargs.get('starting_year', 1)
+        # Configurable table/view name (default: 'auth.vw_users')
+        self.table = kwargs.get('table', 'auth.vw_users')
+        # Configurable employee ID column name (default: 'associate_id')
+        self.employee_id = kwargs.get('employee_id', 'associate_id')
 
     async def _get_candidates(
         self,
@@ -99,12 +103,12 @@ class EmploymentAnniversary(ComputedRule):
             query = f"""
                 SELECT 
                     u.user_id, 
-                    u.associate_id, 
+                    u.{self.employee_id} as associate_id, 
                     u.email, 
                     u.display_name, 
                     u.{self.column} as start_date,
                     EXTRACT(YEAR FROM AGE(CURRENT_DATE, u.{self.column}::date))::int as years_employed
-                FROM auth.vw_users u
+                FROM {self.table} u
                 WHERE u.is_active = true
                 AND u.{self.column} IS NOT NULL
                 AND EXTRACT(MONTH FROM u.{self.column}::date) = EXTRACT(MONTH FROM CURRENT_DATE)
