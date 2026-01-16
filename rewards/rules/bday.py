@@ -11,6 +11,9 @@ class Birthday(ComputedRule):
     Attributes:
     ----------
     conditions: dict: dictionary of conditions affecting the Rule object
+    column: str: name of the birthday column (default: 'birthday')
+    table: str: table/view to query (default: 'auth.vw_users')
+    employee_id: str: employee ID column name (default: 'associate_id')
     """
     def __init__(self, conditions: dict = None, **kwargs):
         super().__init__(conditions, **kwargs)

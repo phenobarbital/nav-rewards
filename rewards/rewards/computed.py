@@ -54,6 +54,7 @@ class ComputedReward(RewardObject):
             cache=system.get_cache(),
         )
         candidates = []
+        awarded_users = []  # Track awarded users for webhook notification
         for rule in self._rules:
             # Computed Reward:
             if rule.fits_computed(env):
@@ -68,8 +69,73 @@ class ComputedReward(RewardObject):
                     if await self.has_awarded(user, env, conn, self.timeframe):
                         continue
                     # Apply reward to User
-                    await self.apply(ctx, env, conn)
+                    result, error = await self.apply(ctx, env, conn)
+                    if result and not error:
+                        # Collect user info for webhook notification
+                        awarded_users.append({
+                            'display_name': getattr(user, 'display_name', user.email),
+                            'email': user.email,
+                            'years_employed': ctx.args.get('years_employed') if hasattr(ctx, 'args') else None
+                        })
+        
+        # Send Teams webhook notification if configured
+        if awarded_users:
+            await self._send_teams_webhook_notification(awarded_users)
+        
         return True
+
+    async def _send_teams_webhook_notification(self, awarded_users: list) -> None:
+        """Send Teams webhook notification for awarded users.
+        
+        Args:
+            awarded_users: List of user dicts that were awarded.
+        """
+        # Check if teams_webhook is configured in the reward
+        teams_webhook = getattr(self._reward, 'teams_webhook', None)
+        if not teams_webhook:
+            # Check in attributes dict as fallback
+            attributes = getattr(self._reward, 'attributes', {}) or {}
+            teams_webhook = attributes.get('teams_webhook')
+        
+        if not teams_webhook:
+            return  # No webhook configured
+        
+        try:
+            from ..notifications.teams_webhook import TeamsWebhook
+            webhook = TeamsWebhook(teams_webhook)
+            
+            reward_name = self._reward.reward
+            reward_icon = getattr(self._reward, 'icon', None)
+            reward_category = getattr(self._reward, 'reward_category', '')
+            
+            # Determine notification type based on reward category or name
+            if 'birthday' in reward_name.lower() or 'birthday' in str(reward_category).lower():
+                await webhook.send_birthday_notification(
+                    users=awarded_users,
+                    reward_name=reward_name,
+                    reward_icon=reward_icon
+                )
+            elif 'anniversary' in reward_name.lower() or 'anniversary' in str(reward_category).lower():
+                await webhook.send_anniversary_notification(
+                    users=awarded_users,
+                    reward_name=reward_name,
+                    reward_icon=reward_icon
+                )
+            else:
+                # Generic notification for other computed rewards
+                await webhook.send_birthday_notification(
+                    users=awarded_users,
+                    reward_name=reward_name,
+                    reward_icon=reward_icon
+                )
+            
+            self.logger.info(
+                f"Teams webhook notification sent for {len(awarded_users)} users"
+            )
+        except Exception as exc:
+            self.logger.error(
+                f"Error sending Teams webhook notification: {exc}"
+            )
 
     async def apply(
         self,
