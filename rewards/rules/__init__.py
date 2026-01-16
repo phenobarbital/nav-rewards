@@ -4,7 +4,7 @@ from .bday import Birthday
 from .duration import EmploymentDuration
 from .seller import BestSeller
 from .random_users import RandomUsers
-from .anniversary import WorkAnniversary
+from .anniversary import WorkAnniversary, EmploymentAnniversary
 from .attendance import AttendanceRule
 from .achievement import AchievementRule
 from .hierarchy import DirectManagerRule, HierarchyRelationshipRule
@@ -26,6 +26,7 @@ __all__ = (
     'BestSeller',
     'RandomUsers',
     'WorkAnniversary',
+    'EmploymentAnniversary',
     'AttendanceRule',
     'AchievementRule',
     'DirectManagerRule',
