@@ -5,7 +5,7 @@ __description__ = (
     "Framework for Sending Kudos and Rewards (Badges) to users. "
     "Supporting several rules and environment/context variables."
 )
-__version__ = "0.1.1"
+__version__ = "0.1.3"
 __copyright__ = "Copyright (c) 2020-2025 Jesus Lara"
 __author__ = "Jesus Lara"
 __author_email__ = "jesuslarag@gmail.com"
