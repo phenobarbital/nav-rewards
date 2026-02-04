@@ -62,6 +62,16 @@ class User(BaseModel):
     attributes: Optional[dict] = Field(default_factory=dict)
     created_at: datetime = Field(default_factory=datetime.now)
     last_login: datetime = Field(default_factory=datetime.now)
+    groups: Optional[list[str]] = Field(default_factory=list)
+    programs: Optional[list[str]] = Field(default_factory=list)
+    worker_type: Optional[str] = Field(
+        default=None,
+        description="Type of worker (e.g., Full-time, Part-time, Contractor)"
+    )
+    job_code: Optional[str] = Field(
+        default=None,
+        description="Job code or position identifier"
+    )
 
     # Additional fields for the methods
     birthday: Optional[str] = Field(

@@ -46,13 +46,15 @@ class Birthday(ComputedRule):
             # Query users where birthday (string YYYY-MM-DD) matches today's month/day
             # birthday column is stored as string like '1964-10-03'
             query = f"""
-                SELECT u.user_id, u.{self.employee_id} as associate_id, u.email, u.display_name, u.{self.column} as birthday
-                FROM {self.table} u
-                WHERE u.is_active = true
-                AND u.{self.column} IS NOT NULL
-                AND u.{self.column} != ''
-                AND EXTRACT(MONTH FROM u.{self.column}::date) = EXTRACT(MONTH FROM CURRENT_DATE)
-                AND EXTRACT(DAY FROM u.{self.column}::date) = EXTRACT(DAY FROM CURRENT_DATE)
+SELECT u.user_id, u.{self.employee_id} as associate_id, u.email, u.display_name, u.{self.column} as birthday
+FROM {self.table} u
+WHERE u.is_active = true
+AND u.{self.column} IS NOT NULL
+AND u.{self.column} <> ''
+-- take only the first 10 chars: YYYY-MM-DD
+AND left(u.{self.column}, 10) ~ '^\d4-\d2-\d2$'
+AND split_part(left(u.{self.column}, 10), '-', 2)::int = EXTRACT(MONTH FROM CURRENT_DATE)
+AND split_part(left(u.{self.column}, 10), '-', 3)::int = EXTRACT(DAY   FROM CURRENT_DATE);
             """
             try:
                 result = await conn.fetch_all(query)

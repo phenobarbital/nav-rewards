@@ -147,6 +147,9 @@ class ComputedRule(AbstractRule):
         )
 
     async def evaluate_dataset(self, env, dataset: Any = None) -> Iterable:
+        """
+        Evaluate the rule against a dataset and return potential users.
+        """
         _candidates = await self._get_candidates(env, dataset)
         potential_users = []
         async with await env.connection.acquire() as conn:
