@@ -13,7 +13,7 @@ dynamic = ["version"]
 description = "Engine for sending Kudos and Rewards to users, built on top of aiohttp + navigator-api."
 readme = "README.md"
 license = "MIT"
-requires-python = ">=3.10.0"
+requires-python = ">=3.10.1"
 authors = [{ name = "Jesus Lara Gimenez", email = "jesuslarag@gmail.com" }]
 keywords = ["asyncio", "rewards", "kudos", "notifications", "email", "teams", "telegram"]
 classifiers = [
@@ -43,7 +43,8 @@ dependencies = [
   "transitions==0.9.2",
   # MS Teams integration
   # "azure-teambots>=0.1.1",
-  "apscheduler>=3.11.0"
+  "apscheduler>=3.11.0",
+  "azure-teambots==0.1.4",
 ]
 
 [project.optional-dependencies]
@@ -96,12 +97,6 @@ override-dependencies = [
     "msal==1.32.0",
     "jsonpickle==3.0.2",
     "watchdog>=6.0.0"
-]
-dev-dependencies = [
-    "pytest>=7.0.0",
-    "pytest-asyncio",
-    "black",
-    "pylint"
 ]
 
 [tool.pytest.ini_options]

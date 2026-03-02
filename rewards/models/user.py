@@ -4,8 +4,14 @@ from datetime import datetime, timedelta, date
 from enum import Enum
 from uuid import UUID, uuid4
 from pydantic import BaseModel, Field, field_validator
-from navigator_auth.models import User as AuthUser
+from asyncdb.models import Column, Model
 from asyncdb.drivers.base import BasePool
+from ..conf import (
+    REWARDS_USER_TABLE,
+    REWARDS_USER_SCHEMA,
+    REWARDS_IDENTITY_TABLE,
+    REWARDS_IDENTITY_SCHEMA,
+)
 
 
 class UserType(Enum):
@@ -18,6 +24,89 @@ class UserType(Enum):
     ROOT = 10  # , 'superuser'
 
 
+class UserModel(Model):
+    """Database model for retrieving users inside Rewards."""
+
+    user_id: int = Column(
+        required=False,
+        primary_key=True,
+        db_default="auto"
+    )
+    first_name: str = Column(required=False)
+    last_name: str = Column(required=False)
+    display_name: str = Column(required=False)
+    email: str = Column(required=False, max=254)
+    alt_email: str = Column(required=False, max=254)
+    password: str = Column(required=False, max=128)
+    last_login: datetime = Column(required=False)
+    username: str = Column(required=False)
+    is_superuser: bool = Column(required=True, default=False)
+    is_active: bool = Column(required=True, default=True)
+    is_new: bool = Column(required=True, default=True)
+    is_staff: bool = Column(required=False, default=True)
+    title: str = Column(required=False, max=90)
+    avatar: str = Column(required=False, max=512)
+    associate_id: str = Column(required=False)
+    associate_oid: str = Column(required=False)
+    department_code: str = Column(required=False)
+    job_code: str = Column(required=False)
+    position_id: str = Column(required=False)
+    group_id: list = Column(required=False)
+    groups: list = Column(required=False)
+    program_id: list = Column(required=False)
+    programs: list = Column(required=False)
+    start_date: datetime = Column(required=False)
+    birthday: str = Column(required=False)
+    worker_type: str = Column(required=False)
+    created_at: datetime = Column(required=False)
+    reports_to_associate_oid: str = Column(required=False)
+    manager_id: str = Column(required=False)
+
+    class Meta:
+        driver = "pg"
+        name = REWARDS_USER_TABLE
+        schema = REWARDS_USER_SCHEMA
+        description = 'View Model for getting Users.'
+        strict = True
+        frozen = False
+        connection = None
+
+
+class UserIdentityModel(Model):
+    """Database model for user identities inside Rewards."""
+
+    identity_id: UUID = Column(
+        required=False,
+        primary_key=True,
+        db_default="auto",
+        repr=False
+    )
+    display_name: str = Column(required=False)
+    title: str = Column(required=False)
+    nickname: str = Column(required=False)
+    email: str = Column(required=False)
+    phone: str = Column(required=False)
+    short_bio: str = Column(required=False)
+    avatar: str = Column(required=False)
+    user_id: UserModel = Column(required=False, repr=False)
+    auth_provider: str = Column(required=False)
+    auth_data: Optional[dict] = Column(required=False, repr=False)
+    attributes: Optional[dict] = Column(required=False, repr=False)
+    created_at: datetime = Column(
+        required=False,
+        default=datetime.now(),
+        repr=False
+    )
+
+    class Meta:
+        driver = "pg"
+        name = REWARDS_IDENTITY_TABLE
+        description = 'Manage User Identities.'
+        schema = REWARDS_IDENTITY_SCHEMA
+        strict = True
+        connection = None
+
+
 class User(BaseModel):
     """Basic User notation - Pydantic version."""
 
@@ -25,7 +114,7 @@ class User(BaseModel):
         default=None,
         description="Primary key, auto-generated"
     )
-    userid: UUID = Field(
+    userid: Optional[UUID] = Field(
         default_factory=uuid4,
         description="Unique user identifier"
     )
@@ -60,8 +149,8 @@ class User(BaseModel):
     is_new: bool = True
     timezone: str = Field(default="UTC", max_length=75)
     attributes: Optional[dict] = Field(default_factory=dict)
-    created_at: datetime = Field(default_factory=datetime.now)
-    last_login: datetime = Field(default_factory=datetime.now)
+    created_at: Optional[datetime] = Field(default_factory=datetime.now)
+    last_login: Optional[datetime] = Field(default_factory=datetime.now)
     groups: Optional[list[str]] = Field(default_factory=list)
     programs: Optional[list[str]] = Field(default_factory=list)
     worker_type: Optional[str] = Field(
@@ -71,6 +160,14 @@ class User(BaseModel):
     job_code: Optional[str] = Field(
         default=None,
         description="Job code or position identifier"
+    )
+    department_code: Optional[str] = Field(
+        default=None,
+        description="Department code or identifier"
+    )
+    associate_oid: Optional[str] = Field(
+        default=None,
+        description="Unique OID for the associate"
     )
 
     # Additional fields for the methods
@@ -89,10 +186,26 @@ class User(BaseModel):
         "use_enum_values": True,
     }
 
-    @field_validator('email', 'alt_email')
+    @field_validator('userid', mode='before')
+    @classmethod
+    def set_default_userid(cls, v):
+        if v is None:
+            return uuid4()
+        return v
+
+    @field_validator('created_at', 'last_login', mode='before')
+    @classmethod
+    def set_default_datetime(cls, v):
+        if v is None:
+            return datetime.now()
+        return v
+
+    @field_validator('email', 'alt_email', mode='before')
     @classmethod
     def validate_email(cls, v: Optional[str]) -> Optional[str]:
         """Basic email validation"""
+        if v == 'None':
+            return None
         if v and '@' not in v:
             raise ValueError('must be a valid email address')
         return v
@@ -155,36 +268,44 @@ async def get_user(pool: Callable, user_id: int) -> Optional[User]:
     """Fetch user by user_id."""
     if isinstance(pool, BasePool):
         async with await pool.acquire() as conn:
-            AuthUser.Meta.connection = conn
-            user = await AuthUser.get(user_id=user_id)
-            if user:
-                return User(
-                    **user.to_dict()
-                )
+            UserModel.Meta.connection = conn
+            user = await UserModel.get(user_id=user_id)
+            return User(**user.to_dict()) if user else None
+
     # Handle InitDriver case:
-    AuthUser.Meta.connection = pool
-    user = await AuthUser.get(user_id=user_id)
+    UserModel.Meta.connection = pool
+    user = await UserModel.get(user_id=user_id)
     return User(**user.to_dict()) if user else None
+
 
 async def get_user_by_username(pool: Callable, username: str) -> Optional[User]:
     """Fetch user by username."""
-    async with await pool.acquire() as conn:
-        AuthUser.Meta.connection = conn
-        user = await AuthUser.get(username=username)
-        if user:
-            return User(
-                **user.to_dict()
-            )
-    return None
+    if isinstance(pool, BasePool):
+        async with await pool.acquire() as conn:
+            UserModel.Meta.connection = conn
+            user = await UserModel.get(username=username)
+            return User(**user.to_dict()) if user else None
+
+    UserModel.Meta.connection = pool
+    user = await UserModel.get(username=username)
+    return User(**user.to_dict()) if user else None
+
 
 async def all_users(pool: Callable) -> list[User]:
     """Fetch all users."""
     users_list = []
-    async with await pool.acquire() as conn:
-        AuthUser.Meta.connection = conn
-        users = await AuthUser.all()
-        users_list.extend(User(**user.to_dict()) for user in users)
+    if isinstance(pool, BasePool):
+        async with await pool.acquire() as conn:
+            UserModel.Meta.connection = conn
+            users = await UserModel.all()
+            users_list.extend(User(**user.to_dict()) for user in users)
+        return users_list
+
+    UserModel.Meta.connection = pool
+    users = await UserModel.all()
+    users_list.extend(User(**user.to_dict()) for user in users)
     return users_list
+
 
 async def filter_users(pool: Callable, **filters) -> list[User]:
     """Fetch users by filters."""
@@ -193,11 +314,19 @@ async def filter_users(pool: Callable, **filters) -> list[User]:
         filters = {
             "is_active": True
         }
-    async with await pool.acquire() as conn:
-        AuthUser.Meta.connection = conn
-        users = await AuthUser.filter(**filters)
-        users_list.extend(User(**user.to_dict()) for user in users)
+
+    if isinstance(pool, BasePool):
+        async with await pool.acquire() as conn:
+            UserModel.Meta.connection = conn
+            users = await UserModel.filter(**filters)
+            users_list.extend(User(**user.to_dict()) for user in users)
+        return users_list
+
+    UserModel.Meta.connection = pool
+    users = await UserModel.filter(**filters)
+    users_list.extend(User(**user.to_dict()) for user in users)
     return users_list
+
 
 # Attach methods to User model
 User.get_user = get_user

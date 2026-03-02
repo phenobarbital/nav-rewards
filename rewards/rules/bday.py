@@ -52,7 +52,6 @@ WHERE u.is_active = true
 AND u.{self.column} IS NOT NULL
 AND u.{self.column} <> ''
 -- take only the first 10 chars: YYYY-MM-DD
-AND left(u.{self.column}, 10) ~ '^\d4-\d2-\d2$'
 AND split_part(left(u.{self.column}, 10), '-', 2)::int = EXTRACT(MONTH FROM CURRENT_DATE)
 AND split_part(left(u.{self.column}, 10), '-', 3)::int = EXTRACT(DAY   FROM CURRENT_DATE);
             """

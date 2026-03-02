@@ -96,6 +96,7 @@ class RewardsEngine:
     ):
         self.storages = []
         self._rewards: list[RewardObject] = []
+        self.dry_run = kwargs.get('dry_run', False)
         self.logger = logging.getLogger(
             'rewards'
         )
@@ -897,28 +898,51 @@ class RewardsEngine:
         if not _filtered:
             self.logger.info("No rewards to evaluate")
             return
-        try:
-            users = await all_users(self.connection)
-        except Exception as err:
-            self.logger.error(f"Error fetching users: {err}")
-            return
+        computed_rewards = [p for p in _filtered if hasattr(p, 'evaluate_dataset') and callable(getattr(p, 'evaluate_dataset'))]
+        standard_rewards = [p for p in _filtered if p not in computed_rewards]
 
-        if not users:
-            self.logger.info("No users found for reward evaluation")
-            return
-
-        # Split users into batches
-        self.logger.info(f"Evaluating rewards for {len(users)} users")
-        # Split users into batches
-        for i in range(0, len(users), self._batch_size):
-            batch = users[i:i + self._batch_size]
+        # For Computed Rules, they know how to find their users:
+        for rew in computed_rewards:
             try:
-                await self.process_batch(batch, env, _filtered)
+                self.logger.info(f"Evaluating computed reward: {rew.name}")
+                contexts = await rew.evaluate_dataset(env)
+                if contexts:
+                    # process each context for this reward
+                    for ctx in contexts:
+                        try:
+                            await self._process_user_batch(ctx, env, [rew])
+                        except Exception as e:
+                            user_email = getattr(ctx.user, 'email', 'unknown') if ctx.user else 'unknown'  # noqa
+                            self.logger.error(
+                                f"Error processing computed reward {rew.name} for {user_email}: {e}"
+                            )
             except Exception as err:
-                self.logger.error(
-                    f"Error processing batch {i // self._batch_size + 1}: {err}"
-                )
-                continue
+                self.logger.error(f"Error evaluating computed reward {rew.name}: {err}")
+
+        # For Standard Rewards (e.g. check all users):
+        if standard_rewards:
+            # We only query all users if we have standard rewards to run
+            try:
+                users = await all_users(self.connection)
+            except Exception as err:
+                self.logger.error(f"Error fetching users: {err}")
+                return
+
+            if not users:
+                self.logger.info("No users found for standard reward evaluation")
+                return
+
+            self.logger.info(f"Evaluating standard rewards for {len(users)} users")
+            # Split users into batches
+            for i in range(0, len(users), self._batch_size):
+                batch = users[i:i + self._batch_size]
+                try:
+                    await self.process_batch(batch, env, standard_rewards)
+                except Exception as err:
+                    self.logger.error(
+                        f"Error processing batch {i // self._batch_size + 1}: {err}"
+                    )
+                    continue
 
     def _get_context_user(
         self,
@@ -958,10 +982,10 @@ class RewardsEngine:
                 "display_name": user.display_name,
                 "email": user.email,
                 "associate_id": getattr(user, 'associate_id', user.email),
-                "associate_oid": user.associate_oid,
-                "department": user.department_code,
-                "job_code": user.job_code,
-                "worker_type": user.worker_type,
+                "associate_oid": getattr(user, 'associate_oid', None),
+                "department": getattr(user, 'department_code', None),
+                "job_code": getattr(user, 'job_code', None),
+                "worker_type": getattr(user, 'worker_type', None),
                 "start_date": user.start_date,
                 "birth_date": bd,
                 "employment_duration": ed,
@@ -1115,7 +1139,13 @@ class RewardsEngine:
                                 f'EVALUATING for {user.email}: {reward.name}'
                             )
                             # Here you would apply the reward
-                            # await reward.apply(ctx, env, conn, message=message)  # noqa
+                            if not self.dry_run:
+                                # await reward.apply(ctx, env, conn, message=message)  # noqa
+                                pass
+                            else:
+                                self.logger.info(
+                                    f"DRY RUN: skipping reward.apply for {reward.name} on user {user.email}"
+                                )
                             return True
                         except Exception as msg_err:
                             self.logger.error(
@@ -1177,7 +1207,13 @@ class RewardsEngine:
                             # Using Apply method from reward itself
                             print('APPLYING REWARD  > ', reward)
                             error = None
-                            # r, error = await reward.apply(ctx, env, conn)
+                            if not self.dry_run:
+                                # r, error = await reward.apply(ctx, env, conn)
+                                pass
+                            else:
+                                self.logger.info(
+                                    f"DRY RUN: skipping reward.apply for {reward.name} on user {ctx.user.email}"
+                                )
                             if error := None:
                                 self.logger.error(
                                     str(error)
@@ -1388,11 +1424,17 @@ class RewardsEngine:
                 # Workflow was completed - award the reward
                 try:
                     async with await self.connection.acquire() as conn:  # pylint: disable=E1101
-                        reward_awarded, error = await reward.apply(
-                            ctx=ctx,
-                            env=env,
-                            conn=conn
-                        )
+                        if not self.dry_run:
+                            reward_awarded, error = await reward.apply(
+                                ctx=ctx,
+                                env=env,
+                                conn=conn
+                            )
+                        else:
+                            self.logger.info(
+                                f"DRY RUN: skipping reward.apply for {reward.name} on user {user.email}"
+                            )
+                            reward_awarded, error = True, None
 
                         if reward_awarded:
                             self.logger.info(

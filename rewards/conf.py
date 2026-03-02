@@ -103,6 +103,16 @@ EMPLOYEES_TABLE = config.get(
     fallback=f"{PEOPLE_SCHEMA}.{EMPLOYEES_TABLE_NAME}"
 )
 
+REWARDS_USER_TABLE = config.get('REWARDS_USER_TABLE', fallback='vw_users')
+REWARDS_USER_SCHEMA = config.get('REWARDS_USER_SCHEMA', fallback='auth')
+REWARDS_IDENTITY_TABLE = config.get('REWARDS_IDENTITY_TABLE', fallback='user_identities')
+REWARDS_IDENTITY_SCHEMA = config.get(
+    'REWARDS_IDENTITY_SCHEMA',
+    fallback=config.get('REWARDS_IDENTIY_SCHEMA', fallback=REWARDS_USER_SCHEMA)
+)
+# Backwards-compatible alias for misspelled setting name.
+REWARDS_IDENTIY_SCHEMA = REWARDS_IDENTITY_SCHEMA
+
 REWARDS_SCHEMA = config.get('REWARDS_SCHEMA', fallback='rewards')
 REWARDS_VIEW = config.get('REWARDS_VIEW', fallback='vw_rewards')
 USER_REWARDS = config.get('USER_REWARDS', fallback="users_rewards")
