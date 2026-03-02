@@ -5,7 +5,7 @@ from enum import Enum
 from uuid import UUID, uuid4
 from pydantic import BaseModel, Field, field_validator
 from navigator_auth.models import User as AuthUser
-from asyncdb.drivers.base import BasePool, InitDriver
+from asyncdb.drivers.base import BasePool
 
 
 class UserType(Enum):
