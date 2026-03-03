@@ -79,7 +79,7 @@ class CollectiveService:
             """
             rows = await conn.fetch_all(query, user_id)
 
-            for row in rows:
+            for row in (rows or []):
                 collective_id = row['collective_id']
                 try:
                     result = await self._complete_collection(

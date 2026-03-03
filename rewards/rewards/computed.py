@@ -3,6 +3,10 @@ import asyncio
 from aiohttp import web
 from asyncdb.exceptions import DriverError
 from datamodel.exceptions import ValidationError
+try:
+    from asyncpg.exceptions import UniqueViolationError
+except ImportError:
+    UniqueViolationError = None
 from .base import RewardObject
 from ..models import (
     RewardView,
@@ -175,7 +179,6 @@ class ComputedReward(RewardObject):
         try:
             UserReward.Meta.connection = conn
             reward = UserReward(**args)
-            print('AWARD > ', reward)
             a = await reward.insert()
             self.logger.notice(
                 f"User {ctx.user.email} has been "
@@ -211,12 +214,25 @@ class ComputedReward(RewardObject):
             }
             return None, error
         except DriverError as err:
+            err_msg = str(err)
+            if 'duplicate key' in err_msg or 'UniqueViolation' in err_msg:
+                self.logger.info(
+                    f"User {ctx.user.email} already has computed "
+                    f"reward '{self._reward.reward}' — skipping."
+                )
+                return None, None
             error = {
                 "message": "Error on Rewards Database",
-                "error": str(err),
+                "error": err_msg,
             }
             return None, error
         except Exception as err:
+            if UniqueViolationError and isinstance(err, UniqueViolationError):
+                self.logger.info(
+                    f"User {ctx.user.email} already has computed "
+                    f"reward '{self._reward.reward}' — skipping."
+                )
+                return None, None
             error = {
                 "message": "Error Creating Reward",
                 "error": str(err),
