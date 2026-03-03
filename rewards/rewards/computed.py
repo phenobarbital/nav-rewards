@@ -1,4 +1,5 @@
 from typing import Optional, Any
+import asyncio
 from aiohttp import web
 from asyncdb.exceptions import DriverError
 from datamodel.exceptions import ValidationError
@@ -179,6 +180,28 @@ class ComputedReward(RewardObject):
             self.logger.notice(
                 f"User {ctx.user.email} has been "
                 f"awarded with {self._reward.reward} at {a.awarded_at}"
+            )
+            await self.check_collectives(
+                self._reward.reward_id,
+                ctx.user.user_id,
+                env,
+                award_id=a.award_id,
+                ctx=ctx
+            )
+            asyncio.create_task(
+                self.send_notification(
+                    ctx,
+                    env,
+                    self._reward,
+                    a
+                )
+            )
+            asyncio.create_task(
+                self._execute_awarded_callbacks(
+                    ctx,
+                    env,
+                    a
+                )
             )
             return a, error
         except ValidationError as err:

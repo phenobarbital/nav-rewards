@@ -75,6 +75,8 @@ from ..kudos.handlers import (
     UserKudosHandler,
     KudosTagHandler
 )
+from ..collectives.handlers import setup_collection
+from ..handlers.collection_admin import setup_collection_admin_routes
 
 
 # disable logging of APScheduler
@@ -829,6 +831,75 @@ class RewardsEngine:
         KudosTagHandler.configure(
             self.app, '/kudos/api/v1/kudos_tags'
         )
+        # Collections Handlers:
+        setup_collection(self.app)
+        # Collection Admin Handlers (CRUD for admins):
+        setup_collection_admin_routes(self.app)
+        # Schedule collection progress maintenance (daily at 2 AM)
+        self.scheduler.add_job(
+            self._evaluate_collections,
+            trigger='cron',
+            hour=2,
+            minute=0,
+            id='collection_progress_maintenance',
+            name='Collection Progress Maintenance',
+            max_instances=1,
+            coalesce=True,
+            misfire_grace_time=3600
+        )
+
+    async def _evaluate_collections(self, app: web.Application = None):
+        """Evaluate collection completions for all users.
+        
+        Checks for users who have completed collections via the 
+        progress trigger but haven't been unlocked yet.
+        Runs as a scheduled job.
+        """
+        try:
+            env = Environment(
+                connection=self.connection,
+                cache=self.get_cache(),
+            )
+            service = CollectionService(env)
+            
+            async with await self.connection.acquire() as conn:
+                # Find all completed but not-yet-unlocked collections
+                query = """
+                    SELECT DISTINCT cp.user_id, cp.collective_id
+                    FROM rewards.collectives_progress cp
+                    LEFT JOIN rewards.collectives_unlocked cu
+                        ON cu.collective_id = cp.collective_id
+                        AND cu.user_id = cp.user_id
+                    WHERE cp.is_complete = TRUE
+                    AND cu.collective_id IS NULL
+                """
+                pending = await conn.fetch_all(query)
+                
+                if not pending:
+                    self.logger.debug(
+                        "No pending collection completions found"
+                    )
+                    return
+                
+                self.logger.info(
+                    f"Processing {len(pending)} pending collection completions"
+                )
+                
+                for row in pending:
+                    try:
+                        await service.check_and_complete(
+                            reward_id=0,  # no triggering badge, maintenance run
+                            user_id=row['user_id']
+                        )
+                    except Exception as err:
+                        self.logger.error(
+                            f"Error processing collection for user "
+                            f"{row['user_id']}: {err}"
+                        )
+        except Exception as err:
+            self.logger.error(
+                f"Error in _evaluate_collections: {err}"
+            )
 
     async def reward_startup(self, app: web.Application):
         """reward_startup.
