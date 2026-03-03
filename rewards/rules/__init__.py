@@ -18,6 +18,7 @@ from .other import (
     BusinessDaysRemainingRule,
     ComplexEnvironmentalRule
 )
+from .collection import CollectionRule, CollectionProgressRule
 
 __all__ = (
     'AbstractRule',
@@ -39,4 +40,6 @@ __all__ = (
     'WeekPositionRule',
     'BusinessDaysRemainingRule',
     'ComplexEnvironmentalRule',
+    'CollectionRule',
+    'CollectionProgressRule',
 )

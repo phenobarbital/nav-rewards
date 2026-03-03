@@ -118,7 +118,6 @@ class EmploymentAnniversary(ComputedRule):
                 AND EXTRACT(YEAR FROM AGE(CURRENT_DATE, u.{self.column}::date))::int >= {self.starting_year}
             """
             try:
-                print('Query > ', query)
                 result = await conn.fetch_all(query)
                 df = self.get_dataframe(result)
                 if df is not None and not df.empty:

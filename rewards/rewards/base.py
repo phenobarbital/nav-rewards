@@ -31,6 +31,7 @@ from ..rules import (
 )
 from ..context import EvalContext
 from ..env import Environment
+from ..collectives.service import CollectiveService
 
 
 try:
@@ -766,7 +767,9 @@ AND deleted_at IS NULL
             await self.check_collectives(
                 self._reward.reward_id,
                 ctx.user.user_id,
-                env
+                env,
+                award_id=a.award_id,
+                ctx=ctx
             )
             ## Using Notify to send Reward Notification to User.
             asyncio.create_task(
@@ -809,46 +812,80 @@ AND deleted_at IS NULL
         self,
         reward_id: int,
         user_id: int,
-        env: Environment
+        env: Environment,
+        award_id: int = None,
+        ctx: EvalContext = None
     ):
         """check_collectives.
 
-            Check that the reward belongs to a
-            collective and user can Unlock the Collective
+        Enhanced: Check that the reward belongs to a collective and
+        process collection completion with bonus rewards, progress
+        tracking, and notifications.
+
         Args:
-            reward_id (int): _description_
-            user_id (int): _description_
+            reward_id (int): The badge that was just awarded.
+            user_id (int): The user who received the badge.
+            env (Environment): Current environment.
+            award_id (int): The award_id from users_rewards.
+            ctx (EvalContext): Optional evaluation context.
         """
+        try:
+            service = CollectiveService(env)
+            completed = await service.check_and_complete(
+                reward_id=reward_id,
+                user_id=user_id,
+                award_id=award_id,
+                ctx=ctx
+            )
+            if completed:
+                self.logger.info(
+                    f"User {user_id} completed {len(completed)} "
+                    f"collection(s): {completed}"
+                )
+        except ImportError:
+            # Fallback to original simple check if service not available
+            await self._check_collectives_simple(reward_id, user_id, env)
+        except Exception as err:
+            self.logger.error(
+                f"Error in check_collectives: {err}"
+            )
+            # Fallback to simple check
+            await self._check_collectives_simple(reward_id, user_id, env)
+
+    async def _check_collectives_simple(
+        self,
+        reward_id: int,
+        user_id: int,
+        env: Environment
+    ):
+        """Original simple check_collectives as fallback."""
         async with await env.connection.acquire() as conn:
-            # Step 1: Find if the reward belongs to any collective
-            query = """
-            SELECT collective_id FROM rewards.collectives_rewards
-            WHERE reward_id = $1::integer;
-            """
-            collective_id = await conn.fetchval(query, reward_id)
+            collective_id = await conn.fetchval(
+                """SELECT collective_id FROM rewards.collectives_rewards
+                WHERE reward_id = $1::integer""",
+                reward_id
+            )
             if collective_id is None:
-                # Reward does not belong to any collective
                 return
-            # Step 2: Check if the user has all rewards from the collective
-            query = """
-            SELECT COUNT(DISTINCT cr.reward_id) as total_rewards,
-                COUNT(DISTINCT ur.reward_id) as user_rewards
-            FROM rewards.collectives_rewards cr
-            LEFT JOIN rewards.users_rewards ur ON cr.reward_id = ur.reward_id
-             AND ur.receiver_user = $1::integer
-            WHERE cr.collective_id = $2::integer
-            GROUP BY cr.collective_id;
-            """
-            record = await conn.fetch_one(query, user_id, collective_id)
+            record = await conn.fetch_one(
+                """SELECT COUNT(DISTINCT cr.reward_id) as total_rewards,
+                    COUNT(DISTINCT ur.reward_id) as user_rewards
+                FROM rewards.collectives_rewards cr
+                LEFT JOIN rewards.users_rewards ur
+                    ON cr.reward_id = ur.reward_id
+                    AND ur.receiver_user = $1::integer
+                WHERE cr.collective_id = $2::integer
+                GROUP BY cr.collective_id""",
+                user_id, collective_id
+            )
             if record and record['total_rewards'] == record['user_rewards']:
-                # Step 3: User has all rewards, unlock the collective
-                query = """
-                INSERT INTO rewards.collectives_unlocked
-                (collective_id, user_id)
-                VALUES ($1, $2)
-                ON CONFLICT (collective_id, user_id) DO NOTHING;
-                """
-                await conn.execute(query, collective_id, user_id)
+                await conn.execute(
+                    """INSERT INTO rewards.collectives_unlocked
+                    (collective_id, user_id)
+                    VALUES ($1, $2)
+                    ON CONFLICT (collective_id, user_id) DO NOTHING""",
+                    collective_id, user_id
+                )
                 self.logger.info(
                     f"User {user_id} has unlocked collective {collective_id}."
                 )
