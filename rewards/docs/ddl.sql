@@ -192,7 +192,6 @@ CREATE TABLE rewards.points (
 	points int4 DEFAULT 0 NOT NULL,
 	awarded_at timestamptz DEFAULT CURRENT_TIMESTAMP NOT NULL,
 	CONSTRAINT pk_rewards_users_karma_points_pkey PRIMARY KEY (point_id),
-	CONSTRAINT unq_rewards_users_karma UNIQUE (user_id, awarded_at),
 	CONSTRAINT fk_auth_users_karma FOREIGN KEY (user_id) REFERENCES auth.users(user_id) ON DELETE RESTRICT ON UPDATE CASCADE DEFERRABLE INITIALLY DEFERRED
 );
 

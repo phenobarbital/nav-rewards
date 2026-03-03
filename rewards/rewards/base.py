@@ -749,7 +749,6 @@ AND deleted_at IS NULL
             # Merge any additional kwargs passed in
             **kwargs
         }
-        print('ARGS > ', args)
         with contextlib.suppress(KeyError):
             # Remove user_id if it conflicts with receiver_user
             if 'user_id' in args and args['user_id'] == args['receiver_user']:
@@ -796,15 +795,29 @@ AND deleted_at IS NULL
             }
             return None, error
         except DriverError as err:
+            err_msg = str(err)
+            if 'duplicate key' in err_msg or 'UniqueViolation' in err_msg:
+                self.logger.info(
+                    f"User {ctx.user.email} already has "
+                    f"reward '{self._reward.reward}' — skipping."
+                )
+                return None, None
             error = {
                 "message": "Error on Rewards Database",
-                "error": str(err),
+                "error": err_msg,
             }
             return None, error
         except Exception as err:
+            err_msg = str(err)
+            if 'duplicate key' in err_msg or 'UniqueViolation' in err_msg:
+                self.logger.info(
+                    f"User {ctx.user.email} already has "
+                    f"reward '{self._reward.reward}' — skipping."
+                )
+                return None, None
             error = {
                 "message": "Error Creating Reward",
-                "error": str(err),
+                "error": err_msg,
             }
             return None, error
 
@@ -996,11 +1009,30 @@ AND deleted_at IS NULL
             name=giver_name,
             email=giver.get('email')
         )
-        recipients = [sender, recipient]
-        await self.send_teams_message(
-            to=recipients,
-            message=message
+
+        # Determine if this is a system badge (no real giver)
+        # A system badge has no giver_user, or giver equals receiver
+        is_system_badge = (
+            a.giver_user is None
+            or a.giver_user == a.receiver_user
+            or giver.get('email') == a.receiver_email
         )
+
+        if is_system_badge:
+            # For system/computed badges, send direct message to recipient
+            await self.send_teams_message(
+                to=[recipient],
+                message=message,
+                use_direct=True
+            )
+        else:
+            # For badges with a giver, create group chat
+            recipients = [sender, recipient]
+            await self.send_teams_message(
+                to=recipients,
+                message=message,
+                use_direct=False
+            )
         # Send an email notification
         email_body = await self._reward_message(
             ctx, env, sanitized_user, message=reward.message
@@ -1038,8 +1070,21 @@ AND deleted_at IS NULL
             }
         )
 
-    async def send_teams_message(self, to: List[Actor], message: str):
-        """Send a message to a user via MS Teams."""
+    async def send_teams_message(
+        self,
+        to: List[Actor],
+        message: str,
+        use_direct: bool = False
+    ):
+        """Send a message to a user via MS Teams.
+
+        Args:
+            to: List of Actor recipients.
+            message: The message content to send.
+            use_direct: If True, send a direct message to the first recipient
+                        instead of creating a group chat. Use this for system
+                        badges where there's no giver.
+        """
         try:
             tm = Teams(
                 as_user=True,
@@ -1049,10 +1094,20 @@ AND deleted_at IS NULL
                 password=REWARDS_PASSWORD
             )
             async with tm as conn:
-                result = await conn.send_to_group(
-                    recipient=to,
-                    message=message
-                )
+                if use_direct:
+                    # For system/computed badges with no giver,
+                    # send direct message to avoid duplicate member error
+                    recipient = to[0] if to else None
+                    if recipient:
+                        result = await conn.send_direct_message(
+                            recipient=recipient,
+                            message=message
+                        )
+                else:
+                    result = await conn.send_to_group(
+                        recipient=to,
+                        message=message
+                    )
                 self.logger.debug(
                     f"Teams Notification sent to: {to}"
                 )
