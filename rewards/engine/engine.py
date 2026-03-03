@@ -76,6 +76,7 @@ from ..kudos.handlers import (
     KudosTagHandler
 )
 from ..collectives.handlers import setup_collection
+from ..handlers.collection_admin import setup_collection_admin_routes
 
 
 # disable logging of APScheduler
@@ -832,6 +833,8 @@ class RewardsEngine:
         )
         # Collections Handlers:
         setup_collection(self.app)
+        # Collection Admin Handlers (CRUD for admins):
+        setup_collection_admin_routes(self.app)
         # Schedule collection progress maintenance (daily at 2 AM)
         self.scheduler.add_job(
             self._evaluate_collections,
