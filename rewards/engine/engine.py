@@ -76,6 +76,7 @@ from ..kudos.handlers import (
     KudosTagHandler
 )
 from ..collectives.handlers import setup_collection
+from ..collectives.service import CollectiveService
 from ..handlers.collection_admin import setup_collection_admin_routes
 
 
@@ -600,7 +601,7 @@ class RewardsEngine:
         _filtered = [
             reward for reward in self._rewards if reward.fits_event(event_name)
         ]
-        print('FILTERED > ', _filtered)
+        self.logger.debug(f"Rewards matching event: {_filtered}")
         if not _filtered:
             self.logger.debug(
                 f"No rewards match event: {event_name}"
@@ -860,7 +861,7 @@ class RewardsEngine:
                 connection=self.connection,
                 cache=self.get_cache(),
             )
-            service = CollectionService(env)
+            service = CollectiveService(env)
             
             async with await self.connection.acquire() as conn:
                 # Find all completed but not-yet-unlocked collections
@@ -1270,13 +1271,11 @@ class RewardsEngine:
                     ):
                         # User already has this reward
                         return False
-                    if await reward.evaluate(
-                        ctx=ctx, environ=env
-                    ):
+                    if await reward.evaluate(ctx, env):
                         # Apply Reward to User:
                         try:
                             # Using Apply method from reward itself
-                            print('APPLYING REWARD  > ', reward)
+                            self.logger.debug(f"Applying reward: {reward}")
                             error = None
                             if not self.dry_run:
                                 # r, error = await reward.apply(ctx, env, conn)
@@ -1324,7 +1323,7 @@ class RewardsEngine:
             ) and p.reward_type in _allowed
         ]
         for reward in _filtered:
-            print('EVALUATING REWARD > ', reward)
+            self.logger.debug(f"Evaluating reward: {reward}")
             asyncio.create_task(
                 self._evaluate_reward(
                     reward, ctx, env

@@ -7,6 +7,7 @@ import inspect
 import aiormq
 from transitions import Machine, State
 from navconfig.logging import logging
+from navrules import default_operators
 from datamodel.parsers.json import json_encoder, json_decoder  # pylint: disable=E0611,E0401
 from .event import EventReward
 from ..env import Environment
@@ -374,22 +375,8 @@ class WorkflowReward(EventReward):
             if threshold is None:
                 return bool(value)
 
-            # Compare against threshold
-            operators = {
-                'gte': lambda v, t: v >= t,
-                'gt': lambda v, t: v > t,
-                'lte': lambda v, t: v <= t,
-                'lt': lambda v, t: v < t,
-                'eq': lambda v, t: v == t,
-                'ne': lambda v, t: v != t,
-            }
-
-            if operator not in operators:
-                raise ValueError(
-                    f"Invalid operator: {operator}"
-                )
-
-            result = operators[operator](value, threshold)
+            # Compare against threshold (shared operator registry)
+            result = default_operators.compare(operator, value, threshold)
 
             self.logger.debug(
                 f"Achievement condition: {function_path}() = {value} {operator} {threshold} = {result}"  # noqa: E501

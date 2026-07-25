@@ -1,95 +1,21 @@
 # Dynamic Achievement System with String Routes
-from typing import Callable, Dict, Optional
+from typing import Callable, Optional
 import importlib
-import inspect
 from navconfig.logging import logging
+from navrules.registry import FunctionRegistry
 
 
-class AchievementRegistry:
-    """Registry for dynamically loaded achievement calculation functions."""
+class AchievementRegistry(FunctionRegistry):
+    """Registry for dynamically loaded achievement calculation functions.
+
+    Backed by navrules.FunctionRegistry, which fixes the historical bug
+    where `register()` wrote to an attribute that was never initialized
+    (`self._functions`), raising AttributeError on every registration.
+    """
 
     def __init__(self):
-        self._loaded_functions: Dict[str, Callable] = {}
-        self._function_cache: Dict[str, Callable] = {}
+        super().__init__()
         self.logger = logging.getLogger('rewards.AchievementRegistry')
-
-    def _load_function_from_path(self, function_path):
-        # Split module path and function name
-        module_path, function_name = function_path.rsplit('.', 1)
-        # Import the module
-        module = importlib.import_module(module_path)
-        # Get the function
-        func = getattr(module, function_name)
-        # Validate function signature
-        self._validate_function_signature(func, function_path)
-        # Cache the function
-        self._function_cache[function_path] = func
-        self.logger.info(f"Loaded achievement function: {function_path}")
-        return func
-
-    def load_function(self, function_path: str) -> Optional[Callable]:
-        """
-        Dynamically load an achievement function from a string path.
-
-        Args:
-            function_path: String like "rewards.functions.calls.get_call_count"
-
-        Returns:
-            The loaded function or None if not found
-        """
-        # Check cache first
-        if function_path in self._function_cache:
-            return self._function_cache[function_path]
-
-        try:
-            # Attempt to load the function from the path
-            return self._load_function_from_path(function_path)
-
-        except (ImportError, AttributeError, ValueError) as err:
-            self.logger.error(
-                f"Failed to load achievement function '{function_path}': {err}"
-            )
-            return None
-
-    def _validate_function_signature(self, func: Callable, path: str):
-        """Validate that the function has the expected signature."""
-        sig = inspect.signature(func)
-        params = list(sig.parameters.keys())
-
-        # Expected: (user, env, conn, **kwargs) or async version
-        if len(params) < 3:
-            raise ValueError(
-                f"Function {path} must accept at least (user, env, conn) args"
-            )
-
-        if not inspect.iscoroutinefunction(func):
-            raise ValueError(
-                f"Achievement function {path} must be async"
-            )
-
-    def get_function(self, function_path: str) -> Optional[Callable]:
-        """Get an achievement function, loading it if necessary."""
-        return self.load_function(function_path)
-
-    def clear_cache(self):
-        """Clear the function cache."""
-        self._function_cache.clear()
-        self.logger.info("Achievement function cache cleared")
-
-    def list_functions(self) -> list:
-        """List all loaded function paths."""
-        return list(self._function_cache.keys())
-
-    def register(self, name: str, func: Callable):
-        """Register an achievement calculation function.
-
-        Args:
-            name: The name of the achievement attribute
-            func: A callable that takes (user, env, conn, **kwargs)
-                and returns a value
-        """
-        self._functions[name] = func
-        self.logger.info(f"Registered achievement function: {name}")
 
 
 # Integration Helper:
