@@ -34,6 +34,7 @@ classifiers = [
 # Core runtime deps (lifted from your previous setup.py)
 dependencies = [
   "aiosmtplib>=3.0.2",
+  "navrules>=0.1.0",
   "python-datamodel>=0.3.12",
   "navconfig[default]>=1.7.0",
   "navigator-api[uvloop,locale]>=2.14.4",

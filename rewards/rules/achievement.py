@@ -1,4 +1,5 @@
 from typing import Union
+from navrules import default_operators
 from ..env import Environment
 from ..context.eval import EvalContext, achievement_registry
 from .abstract import AbstractRule
@@ -80,16 +81,4 @@ class AchievementRule(AbstractRule):
         operator: str
     ) -> bool:
         """Compare value against threshold using the specified operator."""
-        operators = {
-            'gte': lambda v, t: v >= t,
-            'gt': lambda v, t: v > t,
-            'lte': lambda v, t: v <= t,
-            'lt': lambda v, t: v < t,
-            'eq': lambda v, t: v == t,
-            'ne': lambda v, t: v != t,
-        }
-
-        if operator not in operators:
-            raise ValueError(f"Invalid operator: {operator}")
-
-        return operators[operator](value, threshold)
+        return default_operators.compare(operator, value, threshold)
