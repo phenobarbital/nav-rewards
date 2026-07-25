@@ -9,6 +9,7 @@ import contextlib
 from jinja2 import TemplateError
 from datamodel.parsers.json import json_decoder  # pylint: disable=E0611
 from datamodel.exceptions import ValidationError, ParserError  # pylint: disable=E0611
+from navrules import AvailabilityWindow, RuleLoader, RuleLoadError
 from asyncdb.exceptions import DriverError
 from navconfig.logging import logging
 from navconfig import config
@@ -58,6 +59,14 @@ class RewardObject:
         self._reward: RewardView = reward
         self._conditions = conditions
         self._rules: Optional[list[AbstractRule]] = []
+        self._rule_loader = RuleLoader(
+            modules=("rewards.rules",),
+            defaults_injector=self._inject_rule_defaults,
+            conditions=self._conditions,
+        )
+        self._availability = AvailabilityWindow.from_dict(
+            reward.availability_rule or {}
+        )
         self._load_rules(rules)
         self.timeframe: str = reward.timeframe
         if reward.events:
@@ -145,116 +154,33 @@ class RewardObject:
         )
         return ctx, session
 
+    def _inject_rule_defaults(self, rule_name: str, kwargs: dict) -> dict:
+        """Inject per-reward defaults into rule kwargs (RuleLoader hook)."""
+        if rule_name == 'ComputedRule':
+            kwargs['current_reward_id'] = self._reward.reward_id
+        return kwargs
+
     def _load_rules(self, rules: Optional[list]):
         if rules:
             for rule in rules:
                 self.add_rule(rule)
 
-    def _load_rule(self, rule_obj: str) -> AbstractRule:
-        """Load a Rule from a string."""
-        try:
-            args = {}
-            rule = rule_obj.pop(0)
-            if rule_obj:
-                args = rule_obj[0]
-            # Inject current reward_id for rules that need it
-            if rule in ['ComputedRule']:
-                args['current_reward_id'] = self._reward.reward_id
-            self.logger.notice(
-                f"Reward: Loading Rule: {rule}"
-            )
-            module_path = "rewards.rules"
-            module = importlib.import_module(
-                module_path, rule
-            )
-            rule_class = getattr(module, rule)
-            return rule_class(
-                conditions=self._conditions,
-                **args
-            )
-        except (ValueError, ModuleNotFoundError, AttributeError) as exc:
-            self.logger.error(
-                f"Error loading Rule {rule_obj}: {exc}"
-            )
+    def add_rule(self, rule: Union[str, list, dict, AbstractRule]):
+        """Add a Rule to the Reward (specs resolved via navrules.RuleLoader).
 
-    def add_rule(self, rule: Union[str, AbstractRule]):
-        """Add a Rule to the Reward."""
+        A spec that cannot be loaded raises RuleLoadError so the storage
+        drops the whole reward loudly, instead of the historical behavior
+        of appending None and failing silently at evaluation time.
+        """
         if not rule:
             return
-        if isinstance(rule, list):
-            if len(rule) == 0:
-                self.logger.warning(
-                    "Empty rule list, skipping"
-                )
-                return
-            rule = self._load_rule(rule)
-        elif isinstance(rule, dict):
-            rule = self._load_rule_from_dict(rule)
-        elif isinstance(rule, str):
-            # Handle string rule names
-            rule = self._load_rule([rule, {}])
-        elif not isinstance(rule, AbstractRule):
-            raise ValueError(
-                f"Invalid Rule Type: {type(rule)}"
-            )
-        self._rules.append(rule)
-
-    def _load_rule_from_dict(self, rule_dict: dict) -> AbstractRule:
-        """Load a Rule from a dictionary format."""
         try:
-            # Extract rule name from dictionary
-            rule_name = rule_dict.pop(
-                'rule_type',
-                None
-            ) or rule_dict.pop('type', None)
-            if not rule_name:
-                raise ValueError(
-                    "Rule dictionary must contain 'rule_type' or 'type' field"
-                )
-
-            # Remaining dictionary items become the arguments
-            args = rule_dict.copy()
-
-            # Inject current reward_id for rules that need it
-            if rule_name in ['ComputedRule']:
-                args['current_reward_id'] = self._reward.reward_id
-
-            self.logger.notice(
-                f"Reward: Loading Rule from dict: {rule_name}"
-            )
-
-            module_path = "rewards.rules"
-            module = importlib.import_module(module_path, rule_name)
-            rule_class = getattr(module, rule_name)
-            return rule_class(
-                conditions=self._conditions,
-                **args
-            )
-        except (ValueError, ModuleNotFoundError, AttributeError) as exc:
+            self._rules.append(self._rule_loader.load(rule))
+        except RuleLoadError:
             self.logger.error(
-                f"Error loading Rule from dict {rule_dict}: {exc}"
+                f"Reward {self._id}: invalid rule spec {rule!r}"
             )
             raise
-
-    @staticmethod
-    def _parse_time(time_str: str, format: str = "%H:%M:%S"):
-        """Parse a string into a datetime.time object."""
-        return datetime.strptime(time_str, format).time()
-
-    @staticmethod
-    def _parse_date(time_str: str, format: str = "%Y-%d-%m"):
-        """Parse a string into a datetime.time object."""
-        year = datetime.now().year
-        try:
-            return datetime.strptime(
-                f"{year}-{time_str}",
-                format
-            ).date()
-        except ValueError:
-            return datetime.strptime(
-                f"{time_str}/{year}",
-                '%d/%m/%Y'
-            ).date()
 
     async def _reward_message(
         self,
@@ -307,48 +233,7 @@ class RewardObject:
             return False
 
     def evaluate_environment(self, current_environment: Environment) -> bool:
-        availability = self._reward.availability_rule
-        fit_time = True
-        fit_date = True
-        fit_matches = True
-
-        # Check if there are start and end times in the availability rule
-        if 'start_time' in availability and 'end_time' in availability:
-            start_time = self._parse_time(
-                availability.get('start_time')  # Use get() instead of pop()
-            )
-            end_time = self._parse_time(
-                availability.get('end_time')    # Use get() instead of pop()
-            )
-            current_time = current_environment.timestamp.time()
-            fit_time = start_time <= current_time <= end_time
-
-        if 'start_date' in availability and 'end_date' in availability:
-            start_date = self._parse_date(
-                availability.get('start_date')  # Use get() instead of pop()
-            )
-            end_date = self._parse_date(
-                availability.get('end_date')    # Use get() instead of pop()
-            )
-            current_date = current_environment.curdate
-            fit_date = start_date <= current_date <= end_date
-
-        # Check remaining attributes (excluding time/date keys)
-        remaining_attrs = {
-            k: v for k, v in availability.items()
-            if k not in ('start_time', 'end_time', 'start_date', 'end_date')
-        }
-
-        matches = (
-            # Check if the value in the policy environment is a range
-            # If not, check for equality
-            (isinstance(val, (range, list)) and current_environment[key] in val) or  # noqa
-            (current_environment[key] == val)
-            for key, val in remaining_attrs.items()
-        )
-        fit_matches = all(matches)
-
-        return all([fit_time, fit_date, fit_matches])
+        return self._availability.matches(current_environment)
 
     def _evaluate_as_json(self, text) -> Union[dict, list, str]:
         """Evaluate a string as JSON."""
@@ -421,19 +306,21 @@ class RewardObject:
                         f"Invalid assigner type: {type(assigner)}"
                     )
                     fit_results["fit_assigner"] = False
-        # Fit by Rules:
+        # Fit by Rules: AND of ALL rules. (Historical bug: the flag was
+        # overwritten per iteration, so only the last rule counted.)
         fit_rules = {}
+        rules_fit = True
         for rule in self._rules:
-            print('RULE > ', rule)
             try:
-                fit_results["fit_rules"] = rule.fits(ctx, env)
-                fit_rules[f"{rule!s}"] = fit_results["fit_rules"]
+                rule_fit = bool(rule.fits(ctx, env))
             except Exception as exc:
                 self.logger.error(
                     f"Error on Rule {rule}: {exc}"
                 )
-                fit_results["fit_rules"] = False
-                fit_rules[f"{rule!s}"] = False
+                rule_fit = False
+            fit_rules[f"{rule!s}"] = rule_fit
+            rules_fit = rules_fit and rule_fit
+        fit_results["fit_rules"] = rules_fit
         # Determine overall fit
         overall_fit = all(fit_results.values())
         # If not all conditions are met, log or save the failed conditions
@@ -1112,7 +999,7 @@ AND deleted_at IS NULL
                     f"Teams Notification sent to: {to}"
                 )
         except Exception as e:
-            print(f"Error sending Teams message: {e}")
+            self.logger.error(f"Error sending Teams message: {e}")
             return
 
     async def send_email_notification(
@@ -1142,9 +1029,9 @@ AND deleted_at IS NULL
                     template='rewards/email.html',
                     **kwargs
                 )
-                print('Email sent successfully:', result)
+                self.logger.debug(f"Email sent successfully: {result}")
         except Exception as e:
-            print(f"Error sending email notification: {e}")
+            self.logger.error(f"Error sending email notification: {e}")
             return
 
     @staticmethod
